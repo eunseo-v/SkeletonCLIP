@@ -1,0 +1,1209 @@
+2022-10-24 19:24:57,970 - pyskl - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.13 (default, Mar 28 2022, 11:38:47) [GCC 7.5.0]
+CUDA available: True
+GPU 0,1,2,3,4,5: NVIDIA GeForce RTX 3090
+CUDA_HOME: /usr/local/cuda
+NVCC: Cuda compilation tools, release 11.6, V11.6.55
+GCC: gcc (Ubuntu 7.5.0-6ubuntu2) 7.5.0
+PyTorch: 1.10.1
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.4-Product Build 20210904 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.2.3 (Git Hash 7336ca9f055cf1bfa13efb658fe15dc9b41f0740)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.3
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=compute_37
+  - CuDNN 8.2
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.3, CUDNN_VERSION=8.2.0, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.10.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+TorchVision: 0.11.2
+OpenCV: 4.6.0
+MMCV: 1.5.0
+MMCV Compiler: GCC 7.5
+MMCV CUDA Compiler: 11.6
+pyskl: 0.1.0+df62da7
+------------------------------------------------------------
+
+2022-10-24 19:24:58,369 - pyskl - INFO - Config: model = dict(
+    type='RecognizerCLIP',
+    backbone=dict(
+        type='BkCLIP',
+        video_encoder=dict(
+            type='ResNet3dSlowOnly',
+            in_channels=17,
+            base_channels=32,
+            num_stages=3,
+            out_indices=(2, ),
+            stage_blocks=(3, 4, 6),
+            conv1_stride=(1, 1),
+            pool1_stride=(1, 1),
+            inflate=(0, 1, 1),
+            spatial_strides=(2, 2, 2),
+            temporal_strides=(1, 1, 2)),
+        text_encoder=dict(
+            type='TextCLIP',
+            context_length=77,
+            vocab_size=49408,
+            transformer_width=512,
+            transformer_heads=8,
+            transformer_layers=12,
+            embed_dim=512,
+            pretrained='/home/yl/ActionCLIP/.cache/clip/ViT-B-16.pt')),
+    cls_head=dict(
+        type='CLIPHead',
+        in_channels=512,
+        img_loss_cls=dict(type='KLLoss'),
+        text_loss_cls=dict(type='KLLoss'),
+        dropout=0.0,
+        logit_scale_pretrained=True),
+    class_list='/home/yl/pyskl/lists/hmdb51_labels.csv')
+dataset_type = 'PoseDataset'
+ann_file = '/home/yl/public_datasets/heatmap/hmdb51_hrnet.pkl'
+left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
+right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
+train_pipeline = [
+    dict(type='UniformSampleFrames', clip_len=48),
+    dict(type='PoseDecode'),
+    dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+    dict(type='Resize', scale=(-1, 64)),
+    dict(type='RandomResizedCrop', area_range=(0.56, 1.0)),
+    dict(type='Resize', scale=(48, 48), keep_ratio=False),
+    dict(
+        type='Flip',
+        flip_ratio=0.5,
+        left_kp=[1, 3, 5, 7, 9, 11, 13, 15],
+        right_kp=[2, 4, 6, 8, 10, 12, 14, 16]),
+    dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
+    dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+    dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+    dict(type='ToTensor', keys=['imgs', 'label'])
+]
+val_pipeline = [
+    dict(type='UniformSampleFrames', clip_len=48, num_clips=1, test_mode=True),
+    dict(type='PoseDecode'),
+    dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+    dict(type='Resize', scale=(56, 56), keep_ratio=False),
+    dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
+    dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+    dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+    dict(type='ToTensor', keys=['imgs'])
+]
+test_pipeline = [
+    dict(
+        type='UniformSampleFrames', clip_len=48, num_clips=10, test_mode=True),
+    dict(type='PoseDecode'),
+    dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+    dict(type='Resize', scale=(56, 56), keep_ratio=False),
+    dict(
+        type='GeneratePoseTarget',
+        with_kp=True,
+        with_limb=False,
+        double=True,
+        left_kp=[1, 3, 5, 7, 9, 11, 13, 15],
+        right_kp=[2, 4, 6, 8, 10, 12, 14, 16]),
+    dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+    dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+    dict(type='ToTensor', keys=['imgs'])
+]
+data = dict(
+    videos_per_gpu=8,
+    workers_per_gpu=4,
+    test_dataloader=dict(videos_per_gpu=1),
+    train=dict(
+        type='RepeatDataset',
+        times=10,
+        dataset=dict(
+            type='PoseDataset',
+            ann_file='/home/yl/public_datasets/heatmap/hmdb51_hrnet.pkl',
+            split='train1',
+            pipeline=[
+                dict(type='UniformSampleFrames', clip_len=48),
+                dict(type='PoseDecode'),
+                dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+                dict(type='Resize', scale=(-1, 64)),
+                dict(type='RandomResizedCrop', area_range=(0.56, 1.0)),
+                dict(type='Resize', scale=(48, 48), keep_ratio=False),
+                dict(
+                    type='Flip',
+                    flip_ratio=0.5,
+                    left_kp=[1, 3, 5, 7, 9, 11, 13, 15],
+                    right_kp=[2, 4, 6, 8, 10, 12, 14, 16]),
+                dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
+                dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+                dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+                dict(type='ToTensor', keys=['imgs', 'label'])
+            ])),
+    val=dict(
+        type='PoseDataset',
+        ann_file='/home/yl/public_datasets/heatmap/hmdb51_hrnet.pkl',
+        split='test1',
+        pipeline=[
+            dict(
+                type='UniformSampleFrames',
+                clip_len=48,
+                num_clips=1,
+                test_mode=True),
+            dict(type='PoseDecode'),
+            dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+            dict(type='Resize', scale=(56, 56), keep_ratio=False),
+            dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
+            dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+            dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+            dict(type='ToTensor', keys=['imgs'])
+        ]),
+    test=dict(
+        type='PoseDataset',
+        ann_file='/home/yl/public_datasets/heatmap/hmdb51_hrnet.pkl',
+        split='test1',
+        pipeline=[
+            dict(
+                type='UniformSampleFrames',
+                clip_len=48,
+                num_clips=10,
+                test_mode=True),
+            dict(type='PoseDecode'),
+            dict(type='PoseCompact', hw_ratio=1.0, allow_imgpad=True),
+            dict(type='Resize', scale=(56, 56), keep_ratio=False),
+            dict(
+                type='GeneratePoseTarget',
+                with_kp=True,
+                with_limb=False,
+                double=True,
+                left_kp=[1, 3, 5, 7, 9, 11, 13, 15],
+                right_kp=[2, 4, 6, 8, 10, 12, 14, 16]),
+            dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+            dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
+            dict(type='ToTensor', keys=['imgs'])
+        ]))
+optimizer = dict(
+    type='AdamW',
+    lr=0.01,
+    weight_decay=0.0001,
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            {
+                'backbone.text_encoder': dict(lr_mult=0.1, decay_mult=0.9),
+                'cls_head': dict(lr_mult=0.1, decay_mult=0.9)
+            })))
+optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
+lr_config = dict(
+    policy='CosineAnnealing',
+    by_epoch=False,
+    min_lr=0,
+    warmup='linear',
+    warmup_iters=2,
+    warmup_ratio=0.1,
+    warmup_by_epoch=True)
+total_epochs = 20
+checkpoint_config = dict(interval=20)
+evaluation = dict(
+    interval=1, metrics=['top_k_accuracy', 'mean_class_accuracy'], topk=(1, 5))
+log_config = dict(interval=20, hooks=[dict(type='TextLoggerHook')])
+log_level = 'INFO'
+work_dir = './work_dirs/actionclip/mydebug1'
+find_unused_parameters = False
+dist_params = dict(backend='nccl')
+gpu_ids = range(0, 6)
+
+2022-10-24 19:24:58,370 - pyskl - INFO - Set random seed to 42, deterministic: True
+2022-10-24 19:24:59,121 - pyskl - INFO - load TextCLIP model from: /home/yl/ActionCLIP/.cache/clip/ViT-B-16.pt
+2022-10-24 19:25:03,359 - pyskl - WARNING - The model and loaded state dict do not match exactly
+
+unexpected key in source state_dict: logit_scale, visual.class_embedding, visual.positional_embedding, visual.proj, visual.conv1.weight, visual.ln_pre.weight, visual.ln_pre.bias, visual.transformer.resblocks.0.attn.in_proj_weight, visual.transformer.resblocks.0.attn.in_proj_bias, visual.transformer.resblocks.0.attn.out_proj.weight, visual.transformer.resblocks.0.attn.out_proj.bias, visual.transformer.resblocks.0.ln_1.weight, visual.transformer.resblocks.0.ln_1.bias, visual.transformer.resblocks.0.mlp.c_fc.weight, visual.transformer.resblocks.0.mlp.c_fc.bias, visual.transformer.resblocks.0.mlp.c_proj.weight, visual.transformer.resblocks.0.mlp.c_proj.bias, visual.transformer.resblocks.0.ln_2.weight, visual.transformer.resblocks.0.ln_2.bias, visual.transformer.resblocks.1.attn.in_proj_weight, visual.transformer.resblocks.1.attn.in_proj_bias, visual.transformer.resblocks.1.attn.out_proj.weight, visual.transformer.resblocks.1.attn.out_proj.bias, visual.transformer.resblocks.1.ln_1.weight, visual.transformer.resblocks.1.ln_1.bias, visual.transformer.resblocks.1.mlp.c_fc.weight, visual.transformer.resblocks.1.mlp.c_fc.bias, visual.transformer.resblocks.1.mlp.c_proj.weight, visual.transformer.resblocks.1.mlp.c_proj.bias, visual.transformer.resblocks.1.ln_2.weight, visual.transformer.resblocks.1.ln_2.bias, visual.transformer.resblocks.2.attn.in_proj_weight, visual.transformer.resblocks.2.attn.in_proj_bias, visual.transformer.resblocks.2.attn.out_proj.weight, visual.transformer.resblocks.2.attn.out_proj.bias, visual.transformer.resblocks.2.ln_1.weight, visual.transformer.resblocks.2.ln_1.bias, visual.transformer.resblocks.2.mlp.c_fc.weight, visual.transformer.resblocks.2.mlp.c_fc.bias, visual.transformer.resblocks.2.mlp.c_proj.weight, visual.transformer.resblocks.2.mlp.c_proj.bias, visual.transformer.resblocks.2.ln_2.weight, visual.transformer.resblocks.2.ln_2.bias, visual.transformer.resblocks.3.attn.in_proj_weight, visual.transformer.resblocks.3.attn.in_proj_bias, visual.transformer.resblocks.3.attn.out_proj.weight, visual.transformer.resblocks.3.attn.out_proj.bias, visual.transformer.resblocks.3.ln_1.weight, visual.transformer.resblocks.3.ln_1.bias, visual.transformer.resblocks.3.mlp.c_fc.weight, visual.transformer.resblocks.3.mlp.c_fc.bias, visual.transformer.resblocks.3.mlp.c_proj.weight, visual.transformer.resblocks.3.mlp.c_proj.bias, visual.transformer.resblocks.3.ln_2.weight, visual.transformer.resblocks.3.ln_2.bias, visual.transformer.resblocks.4.attn.in_proj_weight, visual.transformer.resblocks.4.attn.in_proj_bias, visual.transformer.resblocks.4.attn.out_proj.weight, visual.transformer.resblocks.4.attn.out_proj.bias, visual.transformer.resblocks.4.ln_1.weight, visual.transformer.resblocks.4.ln_1.bias, visual.transformer.resblocks.4.mlp.c_fc.weight, visual.transformer.resblocks.4.mlp.c_fc.bias, visual.transformer.resblocks.4.mlp.c_proj.weight, visual.transformer.resblocks.4.mlp.c_proj.bias, visual.transformer.resblocks.4.ln_2.weight, visual.transformer.resblocks.4.ln_2.bias, visual.transformer.resblocks.5.attn.in_proj_weight, visual.transformer.resblocks.5.attn.in_proj_bias, visual.transformer.resblocks.5.attn.out_proj.weight, visual.transformer.resblocks.5.attn.out_proj.bias, visual.transformer.resblocks.5.ln_1.weight, visual.transformer.resblocks.5.ln_1.bias, visual.transformer.resblocks.5.mlp.c_fc.weight, visual.transformer.resblocks.5.mlp.c_fc.bias, visual.transformer.resblocks.5.mlp.c_proj.weight, visual.transformer.resblocks.5.mlp.c_proj.bias, visual.transformer.resblocks.5.ln_2.weight, visual.transformer.resblocks.5.ln_2.bias, visual.transformer.resblocks.6.attn.in_proj_weight, visual.transformer.resblocks.6.attn.in_proj_bias, visual.transformer.resblocks.6.attn.out_proj.weight, visual.transformer.resblocks.6.attn.out_proj.bias, visual.transformer.resblocks.6.ln_1.weight, visual.transformer.resblocks.6.ln_1.bias, visual.transformer.resblocks.6.mlp.c_fc.weight, visual.transformer.resblocks.6.mlp.c_fc.bias, visual.transformer.resblocks.6.mlp.c_proj.weight, visual.transformer.resblocks.6.mlp.c_proj.bias, visual.transformer.resblocks.6.ln_2.weight, visual.transformer.resblocks.6.ln_2.bias, visual.transformer.resblocks.7.attn.in_proj_weight, visual.transformer.resblocks.7.attn.in_proj_bias, visual.transformer.resblocks.7.attn.out_proj.weight, visual.transformer.resblocks.7.attn.out_proj.bias, visual.transformer.resblocks.7.ln_1.weight, visual.transformer.resblocks.7.ln_1.bias, visual.transformer.resblocks.7.mlp.c_fc.weight, visual.transformer.resblocks.7.mlp.c_fc.bias, visual.transformer.resblocks.7.mlp.c_proj.weight, visual.transformer.resblocks.7.mlp.c_proj.bias, visual.transformer.resblocks.7.ln_2.weight, visual.transformer.resblocks.7.ln_2.bias, visual.transformer.resblocks.8.attn.in_proj_weight, visual.transformer.resblocks.8.attn.in_proj_bias, visual.transformer.resblocks.8.attn.out_proj.weight, visual.transformer.resblocks.8.attn.out_proj.bias, visual.transformer.resblocks.8.ln_1.weight, visual.transformer.resblocks.8.ln_1.bias, visual.transformer.resblocks.8.mlp.c_fc.weight, visual.transformer.resblocks.8.mlp.c_fc.bias, visual.transformer.resblocks.8.mlp.c_proj.weight, visual.transformer.resblocks.8.mlp.c_proj.bias, visual.transformer.resblocks.8.ln_2.weight, visual.transformer.resblocks.8.ln_2.bias, visual.transformer.resblocks.9.attn.in_proj_weight, visual.transformer.resblocks.9.attn.in_proj_bias, visual.transformer.resblocks.9.attn.out_proj.weight, visual.transformer.resblocks.9.attn.out_proj.bias, visual.transformer.resblocks.9.ln_1.weight, visual.transformer.resblocks.9.ln_1.bias, visual.transformer.resblocks.9.mlp.c_fc.weight, visual.transformer.resblocks.9.mlp.c_fc.bias, visual.transformer.resblocks.9.mlp.c_proj.weight, visual.transformer.resblocks.9.mlp.c_proj.bias, visual.transformer.resblocks.9.ln_2.weight, visual.transformer.resblocks.9.ln_2.bias, visual.transformer.resblocks.10.attn.in_proj_weight, visual.transformer.resblocks.10.attn.in_proj_bias, visual.transformer.resblocks.10.attn.out_proj.weight, visual.transformer.resblocks.10.attn.out_proj.bias, visual.transformer.resblocks.10.ln_1.weight, visual.transformer.resblocks.10.ln_1.bias, visual.transformer.resblocks.10.mlp.c_fc.weight, visual.transformer.resblocks.10.mlp.c_fc.bias, visual.transformer.resblocks.10.mlp.c_proj.weight, visual.transformer.resblocks.10.mlp.c_proj.bias, visual.transformer.resblocks.10.ln_2.weight, visual.transformer.resblocks.10.ln_2.bias, visual.transformer.resblocks.11.attn.in_proj_weight, visual.transformer.resblocks.11.attn.in_proj_bias, visual.transformer.resblocks.11.attn.out_proj.weight, visual.transformer.resblocks.11.attn.out_proj.bias, visual.transformer.resblocks.11.ln_1.weight, visual.transformer.resblocks.11.ln_1.bias, visual.transformer.resblocks.11.mlp.c_fc.weight, visual.transformer.resblocks.11.mlp.c_fc.bias, visual.transformer.resblocks.11.mlp.c_proj.weight, visual.transformer.resblocks.11.mlp.c_proj.bias, visual.transformer.resblocks.11.ln_2.weight, visual.transformer.resblocks.11.ln_2.bias, visual.ln_post.weight, visual.ln_post.bias
+
+2022-10-24 19:25:04,242 - pyskl - INFO - 3570 videos remain after valid thresholding
+2022-10-24 19:25:09,227 - pyskl - INFO - 1530 videos remain after valid thresholding
+2022-10-24 19:25:09,231 - pyskl - INFO - Start running, host: yl@83090-jin, work_dir: /home/yl/pyskl/work_dirs/actionclip/mydebug1
+2022-10-24 19:25:09,231 - pyskl - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(NORMAL      ) DistSamplerSeedHook                
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) OptimizerHook                      
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) DistSamplerSeedHook                
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2022-10-24 19:25:09,231 - pyskl - INFO - workflow: [('train', 1)], max: 20 epochs
+2022-10-24 19:25:09,231 - pyskl - INFO - Checkpoints will be saved to /home/yl/pyskl/work_dirs/actionclip/mydebug1 by HardDiskBackend.
+2022-10-24 19:25:30,789 - pyskl - INFO - Epoch [1][20/744]	lr: 1.115e-03, eta: 4:26:53, time: 1.078, data_time: 0.763, memory: 4591, top1_acc: 0.1385, top5_acc: 0.6469, loss_cls: 2.2652, loss: 2.2652, grad_norm: 18.1110
+2022-10-24 19:25:35,709 - pyskl - INFO - Epoch [1][40/744]	lr: 1.236e-03, eta: 2:43:35, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6990, loss_cls: 1.8896, loss: 1.8896, grad_norm: 5.1077
+2022-10-24 19:25:40,654 - pyskl - INFO - Epoch [1][60/744]	lr: 1.357e-03, eta: 2:09:19, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1531, top5_acc: 0.6625, loss_cls: 1.6321, loss: 1.6321, grad_norm: 6.8559
+2022-10-24 19:25:45,598 - pyskl - INFO - Epoch [1][80/744]	lr: 1.478e-03, eta: 1:52:06, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6729, loss_cls: 1.5561, loss: 1.5561, grad_norm: 6.7056
+2022-10-24 19:25:50,520 - pyskl - INFO - Epoch [1][100/744]	lr: 1.599e-03, eta: 1:41:41, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6833, loss_cls: 1.5396, loss: 1.5396, grad_norm: 5.8965
+2022-10-24 19:25:55,548 - pyskl - INFO - Epoch [1][120/744]	lr: 1.719e-03, eta: 1:34:56, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6854, loss_cls: 1.4753, loss: 1.4753, grad_norm: 6.2074
+2022-10-24 19:26:00,536 - pyskl - INFO - Epoch [1][140/744]	lr: 1.840e-03, eta: 1:29:59, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6688, loss_cls: 1.4230, loss: 1.4230, grad_norm: 4.7571
+2022-10-24 19:26:05,571 - pyskl - INFO - Epoch [1][160/744]	lr: 1.961e-03, eta: 1:26:22, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1740, top5_acc: 0.6802, loss_cls: 1.4397, loss: 1.4397, grad_norm: 5.4424
+2022-10-24 19:26:10,596 - pyskl - INFO - Epoch [1][180/744]	lr: 2.082e-03, eta: 1:23:30, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6635, loss_cls: 1.3678, loss: 1.3678, grad_norm: 4.7971
+2022-10-24 19:26:15,629 - pyskl - INFO - Epoch [1][200/744]	lr: 2.203e-03, eta: 1:21:13, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6594, loss_cls: 1.3324, loss: 1.3324, grad_norm: 3.9564
+2022-10-24 19:26:20,589 - pyskl - INFO - Epoch [1][220/744]	lr: 2.323e-03, eta: 1:19:13, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6708, loss_cls: 1.2732, loss: 1.2732, grad_norm: 4.2020
+2022-10-24 19:26:25,564 - pyskl - INFO - Epoch [1][240/744]	lr: 2.444e-03, eta: 1:17:35, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6688, loss_cls: 1.2696, loss: 1.2696, grad_norm: 4.5903
+2022-10-24 19:26:30,497 - pyskl - INFO - Epoch [1][260/744]	lr: 2.565e-03, eta: 1:16:09, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6729, loss_cls: 1.2886, loss: 1.2886, grad_norm: 4.4179
+2022-10-24 19:26:35,485 - pyskl - INFO - Epoch [1][280/744]	lr: 2.685e-03, eta: 1:14:56, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6823, loss_cls: 1.2507, loss: 1.2507, grad_norm: 4.2705
+2022-10-24 19:26:40,408 - pyskl - INFO - Epoch [1][300/744]	lr: 2.806e-03, eta: 1:13:50, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6854, loss_cls: 1.1577, loss: 1.1577, grad_norm: 3.3395
+2022-10-24 19:26:45,397 - pyskl - INFO - Epoch [1][320/744]	lr: 2.926e-03, eta: 1:12:55, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6708, loss_cls: 1.1888, loss: 1.1888, grad_norm: 3.9577
+2022-10-24 19:26:50,502 - pyskl - INFO - Epoch [1][340/744]	lr: 3.046e-03, eta: 1:12:09, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6896, loss_cls: 1.1477, loss: 1.1477, grad_norm: 3.5162
+2022-10-24 19:26:55,492 - pyskl - INFO - Epoch [1][360/744]	lr: 3.167e-03, eta: 1:11:25, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6771, loss_cls: 1.0938, loss: 1.0938, grad_norm: 3.6743
+2022-10-24 19:27:00,448 - pyskl - INFO - Epoch [1][380/744]	lr: 3.287e-03, eta: 1:10:43, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1813, top5_acc: 0.6844, loss_cls: 1.1066, loss: 1.1066, grad_norm: 3.6519
+2022-10-24 19:27:05,438 - pyskl - INFO - Epoch [1][400/744]	lr: 3.407e-03, eta: 1:10:05, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1500, top5_acc: 0.6656, loss_cls: 1.0700, loss: 1.0700, grad_norm: 3.4648
+2022-10-24 19:27:10,381 - pyskl - INFO - Epoch [1][420/744]	lr: 3.527e-03, eta: 1:09:30, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1594, top5_acc: 0.6688, loss_cls: 1.1154, loss: 1.1154, grad_norm: 3.2412
+2022-10-24 19:27:15,321 - pyskl - INFO - Epoch [1][440/744]	lr: 3.647e-03, eta: 1:08:57, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6646, loss_cls: 1.0403, loss: 1.0403, grad_norm: 3.3852
+2022-10-24 19:27:20,319 - pyskl - INFO - Epoch [1][460/744]	lr: 3.767e-03, eta: 1:08:29, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6646, loss_cls: 1.1260, loss: 1.1260, grad_norm: 4.6947
+2022-10-24 19:27:25,343 - pyskl - INFO - Epoch [1][480/744]	lr: 3.887e-03, eta: 1:08:02, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1469, top5_acc: 0.6604, loss_cls: 1.1021, loss: 1.1021, grad_norm: 3.3276
+2022-10-24 19:27:30,334 - pyskl - INFO - Epoch [1][500/744]	lr: 4.007e-03, eta: 1:07:37, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1490, top5_acc: 0.6656, loss_cls: 1.0955, loss: 1.0955, grad_norm: 4.1344
+2022-10-24 19:27:35,418 - pyskl - INFO - Epoch [1][520/744]	lr: 4.127e-03, eta: 1:07:16, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6729, loss_cls: 1.0607, loss: 1.0607, grad_norm: 3.8501
+2022-10-24 19:27:40,444 - pyskl - INFO - Epoch [1][540/744]	lr: 4.246e-03, eta: 1:06:55, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6583, loss_cls: 1.0569, loss: 1.0569, grad_norm: 3.5225
+2022-10-24 19:27:45,398 - pyskl - INFO - Epoch [1][560/744]	lr: 4.366e-03, eta: 1:06:32, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1510, top5_acc: 0.6760, loss_cls: 0.9614, loss: 0.9614, grad_norm: 2.6703
+2022-10-24 19:27:50,391 - pyskl - INFO - Epoch [1][580/744]	lr: 4.485e-03, eta: 1:06:12, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6667, loss_cls: 1.0154, loss: 1.0154, grad_norm: 2.9464
+2022-10-24 19:27:55,346 - pyskl - INFO - Epoch [1][600/744]	lr: 4.605e-03, eta: 1:05:53, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1490, top5_acc: 0.6635, loss_cls: 1.0120, loss: 1.0120, grad_norm: 2.8025
+2022-10-24 19:28:00,349 - pyskl - INFO - Epoch [1][620/744]	lr: 4.724e-03, eta: 1:05:35, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1531, top5_acc: 0.6635, loss_cls: 0.9635, loss: 0.9635, grad_norm: 3.0219
+2022-10-24 19:28:05,366 - pyskl - INFO - Epoch [1][640/744]	lr: 4.843e-03, eta: 1:05:18, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6573, loss_cls: 0.9036, loss: 0.9036, grad_norm: 2.8345
+2022-10-24 19:28:10,346 - pyskl - INFO - Epoch [1][660/744]	lr: 4.962e-03, eta: 1:05:01, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6750, loss_cls: 0.9839, loss: 0.9839, grad_norm: 3.3045
+2022-10-24 19:28:15,383 - pyskl - INFO - Epoch [1][680/744]	lr: 5.081e-03, eta: 1:04:46, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6635, loss_cls: 0.9096, loss: 0.9096, grad_norm: 2.6863
+2022-10-24 19:28:20,326 - pyskl - INFO - Epoch [1][700/744]	lr: 5.199e-03, eta: 1:04:30, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1479, top5_acc: 0.6542, loss_cls: 0.9244, loss: 0.9244, grad_norm: 2.6746
+2022-10-24 19:28:25,335 - pyskl - INFO - Epoch [1][720/744]	lr: 5.318e-03, eta: 1:04:16, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6750, loss_cls: 0.9189, loss: 0.9189, grad_norm: 2.5485
+2022-10-24 19:28:30,377 - pyskl - INFO - Epoch [1][740/744]	lr: 5.437e-03, eta: 1:04:03, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1448, top5_acc: 0.6635, loss_cls: 0.9544, loss: 0.9544, grad_norm: 2.5240
+2022-10-24 19:28:59,368 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:28:59,374 - pyskl - INFO - 
+top1_acc	0.1458
+top5_acc	0.4869
+2022-10-24 19:28:59,374 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:28:59,375 - pyskl - INFO - 
+mean_acc	0.1458
+2022-10-24 19:29:00,940 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_1.pth.
+2022-10-24 19:29:00,941 - pyskl - INFO - Best top1_acc is 0.1458 at 1 epoch.
+2022-10-24 19:29:00,941 - pyskl - INFO - Epoch(val) [1][32]	top1_acc: 0.1458, top5_acc: 0.4869, mean_class_accuracy: 0.1458
+2022-10-24 19:29:21,073 - pyskl - INFO - Epoch [2][20/744]	lr: 5.579e-03, eta: 1:08:07, time: 1.005, data_time: 0.759, memory: 4591, top1_acc: 0.1469, top5_acc: 0.6656, loss_cls: 0.9690, loss: 0.9690, grad_norm: 2.7947
+2022-10-24 19:29:26,104 - pyskl - INFO - Epoch [2][40/744]	lr: 5.697e-03, eta: 1:07:48, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1500, top5_acc: 0.6667, loss_cls: 0.8024, loss: 0.8024, grad_norm: 2.3967
+2022-10-24 19:29:31,138 - pyskl - INFO - Epoch [2][60/744]	lr: 5.815e-03, eta: 1:07:29, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1531, top5_acc: 0.6760, loss_cls: 0.8628, loss: 0.8628, grad_norm: 2.6523
+2022-10-24 19:29:36,103 - pyskl - INFO - Epoch [2][80/744]	lr: 5.933e-03, eta: 1:07:10, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1510, top5_acc: 0.6635, loss_cls: 0.8547, loss: 0.8547, grad_norm: 2.7194
+2022-10-24 19:29:41,078 - pyskl - INFO - Epoch [2][100/744]	lr: 6.051e-03, eta: 1:06:51, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6708, loss_cls: 0.8414, loss: 0.8414, grad_norm: 2.8464
+2022-10-24 19:29:46,038 - pyskl - INFO - Epoch [2][120/744]	lr: 6.168e-03, eta: 1:06:34, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1594, top5_acc: 0.6677, loss_cls: 0.8336, loss: 0.8336, grad_norm: 2.9812
+2022-10-24 19:29:51,043 - pyskl - INFO - Epoch [2][140/744]	lr: 6.286e-03, eta: 1:06:17, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1417, top5_acc: 0.6625, loss_cls: 1.0455, loss: 1.0455, grad_norm: 15.9191
+2022-10-24 19:29:55,970 - pyskl - INFO - Epoch [2][160/744]	lr: 6.403e-03, eta: 1:06:00, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1469, top5_acc: 0.6646, loss_cls: 1.0329, loss: 1.0329, grad_norm: 5.6460
+2022-10-24 19:30:01,027 - pyskl - INFO - Epoch [2][180/744]	lr: 6.520e-03, eta: 1:05:45, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1667, top5_acc: 0.6844, loss_cls: 1.1164, loss: 1.1164, grad_norm: 9.1018
+2022-10-24 19:30:06,069 - pyskl - INFO - Epoch [2][200/744]	lr: 6.637e-03, eta: 1:05:30, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6594, loss_cls: 1.1016, loss: 1.1016, grad_norm: 6.3187
+2022-10-24 19:30:11,131 - pyskl - INFO - Epoch [2][220/744]	lr: 6.754e-03, eta: 1:05:16, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1562, top5_acc: 0.6771, loss_cls: 1.0343, loss: 1.0343, grad_norm: 6.1164
+2022-10-24 19:30:16,184 - pyskl - INFO - Epoch [2][240/744]	lr: 6.871e-03, eta: 1:05:02, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1500, top5_acc: 0.6635, loss_cls: 1.0193, loss: 1.0193, grad_norm: 5.2508
+2022-10-24 19:30:21,218 - pyskl - INFO - Epoch [2][260/744]	lr: 6.988e-03, eta: 1:04:48, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1562, top5_acc: 0.6625, loss_cls: 0.9623, loss: 0.9623, grad_norm: 4.9531
+2022-10-24 19:30:26,203 - pyskl - INFO - Epoch [2][280/744]	lr: 7.104e-03, eta: 1:04:35, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6646, loss_cls: 0.9037, loss: 0.9037, grad_norm: 4.0807
+2022-10-24 19:30:31,217 - pyskl - INFO - Epoch [2][300/744]	lr: 7.220e-03, eta: 1:04:21, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6625, loss_cls: 0.9111, loss: 0.9111, grad_norm: 4.0853
+2022-10-24 19:30:36,233 - pyskl - INFO - Epoch [2][320/744]	lr: 7.336e-03, eta: 1:04:08, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6708, loss_cls: 0.9395, loss: 0.9395, grad_norm: 6.0447
+2022-10-24 19:30:41,203 - pyskl - INFO - Epoch [2][340/744]	lr: 7.452e-03, eta: 1:03:55, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1500, top5_acc: 0.6698, loss_cls: 0.8913, loss: 0.8913, grad_norm: 5.8772
+2022-10-24 19:30:46,150 - pyskl - INFO - Epoch [2][360/744]	lr: 7.568e-03, eta: 1:03:42, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6573, loss_cls: 0.9697, loss: 0.9697, grad_norm: 9.3663
+2022-10-24 19:30:51,207 - pyskl - INFO - Epoch [2][380/744]	lr: 7.683e-03, eta: 1:03:30, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1458, top5_acc: 0.6615, loss_cls: 0.9230, loss: 0.9230, grad_norm: 5.4360
+2022-10-24 19:30:56,232 - pyskl - INFO - Epoch [2][400/744]	lr: 7.799e-03, eta: 1:03:19, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6729, loss_cls: 0.8979, loss: 0.8979, grad_norm: 4.8869
+2022-10-24 19:31:01,225 - pyskl - INFO - Epoch [2][420/744]	lr: 7.914e-03, eta: 1:03:07, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6656, loss_cls: 0.9197, loss: 0.9197, grad_norm: 4.1078
+2022-10-24 19:31:06,101 - pyskl - INFO - Epoch [2][440/744]	lr: 8.029e-03, eta: 1:02:54, time: 0.244, data_time: 0.002, memory: 4591, top1_acc: 0.1490, top5_acc: 0.6583, loss_cls: 0.8878, loss: 0.8878, grad_norm: 3.7856
+2022-10-24 19:31:11,097 - pyskl - INFO - Epoch [2][460/744]	lr: 8.143e-03, eta: 1:02:42, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6667, loss_cls: 0.9540, loss: 0.9540, grad_norm: 3.4493
+2022-10-24 19:31:16,073 - pyskl - INFO - Epoch [2][480/744]	lr: 8.258e-03, eta: 1:02:31, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1469, top5_acc: 0.6625, loss_cls: 0.8766, loss: 0.8766, grad_norm: 4.3711
+2022-10-24 19:31:20,953 - pyskl - INFO - Epoch [2][500/744]	lr: 8.372e-03, eta: 1:02:19, time: 0.244, data_time: 0.001, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6688, loss_cls: 0.8817, loss: 0.8817, grad_norm: 3.3646
+2022-10-24 19:31:25,909 - pyskl - INFO - Epoch [2][520/744]	lr: 8.486e-03, eta: 1:02:08, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1490, top5_acc: 0.6646, loss_cls: 0.9294, loss: 0.9294, grad_norm: 6.5365
+2022-10-24 19:31:30,882 - pyskl - INFO - Epoch [2][540/744]	lr: 8.600e-03, eta: 1:01:57, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6688, loss_cls: 0.9055, loss: 0.9055, grad_norm: 6.1208
+2022-10-24 19:31:35,879 - pyskl - INFO - Epoch [2][560/744]	lr: 8.714e-03, eta: 1:01:47, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6563, loss_cls: 0.8376, loss: 0.8376, grad_norm: 4.5433
+2022-10-24 19:31:40,935 - pyskl - INFO - Epoch [2][580/744]	lr: 8.828e-03, eta: 1:01:37, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1594, top5_acc: 0.6708, loss_cls: 0.8572, loss: 0.8572, grad_norm: 4.6624
+2022-10-24 19:31:45,969 - pyskl - INFO - Epoch [2][600/744]	lr: 8.941e-03, eta: 1:01:27, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1594, top5_acc: 0.6646, loss_cls: 0.7901, loss: 0.7901, grad_norm: 4.1834
+2022-10-24 19:31:50,944 - pyskl - INFO - Epoch [2][620/744]	lr: 9.054e-03, eta: 1:01:17, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6719, loss_cls: 0.8893, loss: 0.8893, grad_norm: 3.3553
+2022-10-24 19:31:55,971 - pyskl - INFO - Epoch [2][640/744]	lr: 9.167e-03, eta: 1:01:07, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6708, loss_cls: 0.8757, loss: 0.8757, grad_norm: 4.1694
+2022-10-24 19:32:00,955 - pyskl - INFO - Epoch [2][660/744]	lr: 9.279e-03, eta: 1:00:58, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6729, loss_cls: 0.8407, loss: 0.8407, grad_norm: 4.1219
+2022-10-24 19:32:05,972 - pyskl - INFO - Epoch [2][680/744]	lr: 9.392e-03, eta: 1:00:48, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1469, top5_acc: 0.6677, loss_cls: 1.0284, loss: 1.0284, grad_norm: 7.1172
+2022-10-24 19:32:10,890 - pyskl - INFO - Epoch [2][700/744]	lr: 9.504e-03, eta: 1:00:38, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6677, loss_cls: 1.1231, loss: 1.1231, grad_norm: 7.1833
+2022-10-24 19:32:15,937 - pyskl - INFO - Epoch [2][720/744]	lr: 9.616e-03, eta: 1:00:29, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1458, top5_acc: 0.6635, loss_cls: 1.0043, loss: 1.0043, grad_norm: 5.8365
+2022-10-24 19:32:20,883 - pyskl - INFO - Epoch [2][740/744]	lr: 9.727e-03, eta: 1:00:20, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1458, top5_acc: 0.6615, loss_cls: 0.9017, loss: 0.9017, grad_norm: 3.3686
+2022-10-24 19:32:49,319 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:32:49,325 - pyskl - INFO - 
+top1_acc	0.0771
+top5_acc	0.2948
+2022-10-24 19:32:49,325 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:32:49,326 - pyskl - INFO - 
+mean_acc	0.0771
+2022-10-24 19:32:49,326 - pyskl - INFO - Epoch(val) [2][32]	top1_acc: 0.0771, top5_acc: 0.2948, mean_class_accuracy: 0.0771
+2022-10-24 19:33:09,986 - pyskl - INFO - Epoch [3][20/744]	lr: 9.749e-03, eta: 1:02:19, time: 1.032, data_time: 0.769, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6656, loss_cls: 1.1750, loss: 1.1750, grad_norm: 16.1372
+2022-10-24 19:33:14,992 - pyskl - INFO - Epoch [3][40/744]	lr: 9.742e-03, eta: 1:02:08, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6615, loss_cls: 1.1131, loss: 1.1131, grad_norm: 9.2398
+2022-10-24 19:33:19,959 - pyskl - INFO - Epoch [3][60/744]	lr: 9.736e-03, eta: 1:01:57, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6656, loss_cls: 1.0425, loss: 1.0425, grad_norm: 103.3556
+2022-10-24 19:33:24,949 - pyskl - INFO - Epoch [3][80/744]	lr: 9.729e-03, eta: 1:01:47, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1667, top5_acc: 0.6583, loss_cls: 1.1349, loss: 1.1349, grad_norm: 13.1611
+2022-10-24 19:33:29,862 - pyskl - INFO - Epoch [3][100/744]	lr: 9.722e-03, eta: 1:01:36, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6583, loss_cls: 1.2013, loss: 1.2013, grad_norm: 12.5126
+2022-10-24 19:33:34,823 - pyskl - INFO - Epoch [3][120/744]	lr: 9.715e-03, eta: 1:01:25, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1688, top5_acc: 0.6688, loss_cls: 1.0526, loss: 1.0526, grad_norm: 11.3702
+2022-10-24 19:33:39,795 - pyskl - INFO - Epoch [3][140/744]	lr: 9.708e-03, eta: 1:01:15, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6698, loss_cls: 1.1263, loss: 1.1263, grad_norm: 17.7744
+2022-10-24 19:33:44,743 - pyskl - INFO - Epoch [3][160/744]	lr: 9.701e-03, eta: 1:01:05, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6719, loss_cls: 1.1846, loss: 1.1846, grad_norm: 16.2895
+2022-10-24 19:33:49,730 - pyskl - INFO - Epoch [3][180/744]	lr: 9.694e-03, eta: 1:00:55, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6604, loss_cls: 1.1911, loss: 1.1911, grad_norm: 9.4727
+2022-10-24 19:33:54,678 - pyskl - INFO - Epoch [3][200/744]	lr: 9.686e-03, eta: 1:00:45, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6719, loss_cls: 1.1123, loss: 1.1123, grad_norm: 7.5276
+2022-10-24 19:33:59,679 - pyskl - INFO - Epoch [3][220/744]	lr: 9.679e-03, eta: 1:00:35, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1719, top5_acc: 0.6760, loss_cls: 1.0116, loss: 1.0116, grad_norm: 5.3370
+2022-10-24 19:34:04,592 - pyskl - INFO - Epoch [3][240/744]	lr: 9.671e-03, eta: 1:00:25, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6760, loss_cls: 0.9935, loss: 0.9935, grad_norm: 3.3615
+2022-10-24 19:34:09,603 - pyskl - INFO - Epoch [3][260/744]	lr: 9.664e-03, eta: 1:00:16, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6719, loss_cls: 0.9470, loss: 0.9470, grad_norm: 7.6865
+2022-10-24 19:34:14,631 - pyskl - INFO - Epoch [3][280/744]	lr: 9.656e-03, eta: 1:00:06, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1687, top5_acc: 0.6854, loss_cls: 0.9285, loss: 0.9285, grad_norm: 2.5812
+2022-10-24 19:34:19,640 - pyskl - INFO - Epoch [3][300/744]	lr: 9.648e-03, eta: 0:59:57, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6604, loss_cls: 0.8381, loss: 0.8381, grad_norm: 3.1984
+2022-10-24 19:34:24,594 - pyskl - INFO - Epoch [3][320/744]	lr: 9.641e-03, eta: 0:59:48, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1552, top5_acc: 0.6667, loss_cls: 0.9400, loss: 0.9400, grad_norm: 2.9933
+2022-10-24 19:34:29,576 - pyskl - INFO - Epoch [3][340/744]	lr: 9.633e-03, eta: 0:59:39, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6573, loss_cls: 0.8997, loss: 0.8997, grad_norm: 5.0049
+2022-10-24 19:34:34,572 - pyskl - INFO - Epoch [3][360/744]	lr: 9.625e-03, eta: 0:59:30, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6656, loss_cls: 0.8571, loss: 0.8571, grad_norm: 4.3224
+2022-10-24 19:34:39,563 - pyskl - INFO - Epoch [3][380/744]	lr: 9.617e-03, eta: 0:59:21, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6771, loss_cls: 0.8763, loss: 0.8763, grad_norm: 3.7011
+2022-10-24 19:34:44,570 - pyskl - INFO - Epoch [3][400/744]	lr: 9.608e-03, eta: 0:59:12, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6750, loss_cls: 0.8447, loss: 0.8447, grad_norm: 2.3514
+2022-10-24 19:34:49,590 - pyskl - INFO - Epoch [3][420/744]	lr: 9.600e-03, eta: 0:59:04, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6615, loss_cls: 0.8470, loss: 0.8470, grad_norm: 17.9594
+2022-10-24 19:34:54,612 - pyskl - INFO - Epoch [3][440/744]	lr: 9.592e-03, eta: 0:58:55, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6740, loss_cls: 0.8355, loss: 0.8355, grad_norm: 2.4335
+2022-10-24 19:34:59,675 - pyskl - INFO - Epoch [3][460/744]	lr: 9.583e-03, eta: 0:58:47, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6635, loss_cls: 0.8366, loss: 0.8366, grad_norm: 2.7797
+2022-10-24 19:35:04,683 - pyskl - INFO - Epoch [3][480/744]	lr: 9.575e-03, eta: 0:58:39, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6750, loss_cls: 0.7799, loss: 0.7799, grad_norm: 3.1065
+2022-10-24 19:35:09,661 - pyskl - INFO - Epoch [3][500/744]	lr: 9.566e-03, eta: 0:58:30, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6677, loss_cls: 0.7743, loss: 0.7743, grad_norm: 2.7507
+2022-10-24 19:35:14,585 - pyskl - INFO - Epoch [3][520/744]	lr: 9.558e-03, eta: 0:58:22, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6708, loss_cls: 0.7427, loss: 0.7427, grad_norm: 3.9035
+2022-10-24 19:35:19,615 - pyskl - INFO - Epoch [3][540/744]	lr: 9.549e-03, eta: 0:58:13, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6760, loss_cls: 0.7763, loss: 0.7763, grad_norm: 2.3936
+2022-10-24 19:35:24,628 - pyskl - INFO - Epoch [3][560/744]	lr: 9.540e-03, eta: 0:58:05, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6760, loss_cls: 0.8109, loss: 0.8109, grad_norm: 2.4871
+2022-10-24 19:35:29,637 - pyskl - INFO - Epoch [3][580/744]	lr: 9.531e-03, eta: 0:57:57, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6698, loss_cls: 0.7776, loss: 0.7776, grad_norm: 2.3105
+2022-10-24 19:35:34,604 - pyskl - INFO - Epoch [3][600/744]	lr: 9.522e-03, eta: 0:57:49, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6594, loss_cls: 0.7838, loss: 0.7838, grad_norm: 2.1507
+2022-10-24 19:35:39,640 - pyskl - INFO - Epoch [3][620/744]	lr: 9.513e-03, eta: 0:57:41, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6708, loss_cls: 0.7157, loss: 0.7157, grad_norm: 3.9809
+2022-10-24 19:35:44,667 - pyskl - INFO - Epoch [3][640/744]	lr: 9.504e-03, eta: 0:57:34, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1740, top5_acc: 0.6719, loss_cls: 0.7296, loss: 0.7296, grad_norm: 1.5424
+2022-10-24 19:35:49,646 - pyskl - INFO - Epoch [3][660/744]	lr: 9.495e-03, eta: 0:57:25, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6781, loss_cls: 0.7351, loss: 0.7351, grad_norm: 1.8423
+2022-10-24 19:35:54,690 - pyskl - INFO - Epoch [3][680/744]	lr: 9.486e-03, eta: 0:57:18, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6813, loss_cls: 0.8022, loss: 0.8022, grad_norm: 8.7404
+2022-10-24 19:35:59,610 - pyskl - INFO - Epoch [3][700/744]	lr: 9.476e-03, eta: 0:57:10, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.1594, top5_acc: 0.6677, loss_cls: 0.8420, loss: 0.8420, grad_norm: 3.2076
+2022-10-24 19:36:04,619 - pyskl - INFO - Epoch [3][720/744]	lr: 9.467e-03, eta: 0:57:02, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6667, loss_cls: 0.8983, loss: 0.8983, grad_norm: 4.3416
+2022-10-24 19:36:09,580 - pyskl - INFO - Epoch [3][740/744]	lr: 9.457e-03, eta: 0:56:54, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6656, loss_cls: 0.8205, loss: 0.8205, grad_norm: 3.2875
+2022-10-24 19:36:37,943 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:36:37,948 - pyskl - INFO - 
+top1_acc	0.2634
+top5_acc	0.6359
+2022-10-24 19:36:37,948 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:36:37,949 - pyskl - INFO - 
+mean_acc	0.2634
+2022-10-24 19:36:38,050 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_1.pth was removed
+2022-10-24 19:36:39,583 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_3.pth.
+2022-10-24 19:36:39,584 - pyskl - INFO - Best top1_acc is 0.2634 at 3 epoch.
+2022-10-24 19:36:39,584 - pyskl - INFO - Epoch(val) [3][32]	top1_acc: 0.2634, top5_acc: 0.6359, mean_class_accuracy: 0.2634
+2022-10-24 19:36:59,695 - pyskl - INFO - Epoch [4][20/744]	lr: 9.446e-03, eta: 0:58:04, time: 1.005, data_time: 0.757, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6604, loss_cls: 0.7743, loss: 0.7743, grad_norm: 6.3668
+2022-10-24 19:37:04,680 - pyskl - INFO - Epoch [4][40/744]	lr: 9.436e-03, eta: 0:57:56, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6688, loss_cls: 0.7479, loss: 0.7479, grad_norm: 4.8336
+2022-10-24 19:37:09,651 - pyskl - INFO - Epoch [4][60/744]	lr: 9.426e-03, eta: 0:57:47, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6740, loss_cls: 0.8188, loss: 0.8188, grad_norm: 5.5106
+2022-10-24 19:37:14,669 - pyskl - INFO - Epoch [4][80/744]	lr: 9.417e-03, eta: 0:57:39, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6740, loss_cls: 0.7393, loss: 0.7393, grad_norm: 3.0650
+2022-10-24 19:37:19,640 - pyskl - INFO - Epoch [4][100/744]	lr: 9.407e-03, eta: 0:57:31, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1625, top5_acc: 0.6625, loss_cls: 0.7899, loss: 0.7899, grad_norm: 5.1091
+2022-10-24 19:37:24,634 - pyskl - INFO - Epoch [4][120/744]	lr: 9.397e-03, eta: 0:57:22, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6740, loss_cls: 0.7252, loss: 0.7252, grad_norm: 7.3465
+2022-10-24 19:37:29,658 - pyskl - INFO - Epoch [4][140/744]	lr: 9.387e-03, eta: 0:57:14, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1667, top5_acc: 0.6563, loss_cls: 0.7559, loss: 0.7559, grad_norm: 10.8233
+2022-10-24 19:37:34,723 - pyskl - INFO - Epoch [4][160/744]	lr: 9.376e-03, eta: 0:57:07, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6552, loss_cls: 0.7912, loss: 0.7912, grad_norm: 2.0089
+2022-10-24 19:37:39,701 - pyskl - INFO - Epoch [4][180/744]	lr: 9.366e-03, eta: 0:56:58, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6615, loss_cls: 0.8373, loss: 0.8373, grad_norm: 7.9220
+2022-10-24 19:37:44,757 - pyskl - INFO - Epoch [4][200/744]	lr: 9.356e-03, eta: 0:56:51, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6708, loss_cls: 0.6915, loss: 0.6915, grad_norm: 5.7586
+2022-10-24 19:37:49,757 - pyskl - INFO - Epoch [4][220/744]	lr: 9.345e-03, eta: 0:56:43, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6656, loss_cls: 0.7609, loss: 0.7609, grad_norm: 1.8150
+2022-10-24 19:37:54,663 - pyskl - INFO - Epoch [4][240/744]	lr: 9.335e-03, eta: 0:56:34, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6750, loss_cls: 0.7316, loss: 0.7316, grad_norm: 2.2266
+2022-10-24 19:37:59,665 - pyskl - INFO - Epoch [4][260/744]	lr: 9.324e-03, eta: 0:56:27, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6813, loss_cls: 0.6667, loss: 0.6667, grad_norm: 1.2596
+2022-10-24 19:38:04,601 - pyskl - INFO - Epoch [4][280/744]	lr: 9.314e-03, eta: 0:56:19, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6719, loss_cls: 0.6706, loss: 0.6706, grad_norm: 1.3503
+2022-10-24 19:38:09,605 - pyskl - INFO - Epoch [4][300/744]	lr: 9.303e-03, eta: 0:56:11, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6740, loss_cls: 0.7366, loss: 0.7366, grad_norm: 1.7318
+2022-10-24 19:38:14,694 - pyskl - INFO - Epoch [4][320/744]	lr: 9.292e-03, eta: 0:56:04, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.1531, top5_acc: 0.6708, loss_cls: 0.6637, loss: 0.6637, grad_norm: 2.9045
+2022-10-24 19:38:19,727 - pyskl - INFO - Epoch [4][340/744]	lr: 9.281e-03, eta: 0:55:56, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1604, top5_acc: 0.6719, loss_cls: 0.6580, loss: 0.6580, grad_norm: 2.9951
+2022-10-24 19:38:24,766 - pyskl - INFO - Epoch [4][360/744]	lr: 9.270e-03, eta: 0:55:49, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1562, top5_acc: 0.6740, loss_cls: 0.6859, loss: 0.6859, grad_norm: 5.4072
+2022-10-24 19:38:29,820 - pyskl - INFO - Epoch [4][380/744]	lr: 9.259e-03, eta: 0:55:41, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1542, top5_acc: 0.6656, loss_cls: 0.6736, loss: 0.6736, grad_norm: 2.4085
+2022-10-24 19:38:34,880 - pyskl - INFO - Epoch [4][400/744]	lr: 9.248e-03, eta: 0:55:34, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6677, loss_cls: 0.6936, loss: 0.6936, grad_norm: 4.7155
+2022-10-24 19:38:39,857 - pyskl - INFO - Epoch [4][420/744]	lr: 9.237e-03, eta: 0:55:27, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6781, loss_cls: 0.6513, loss: 0.6513, grad_norm: 1.4275
+2022-10-24 19:38:44,816 - pyskl - INFO - Epoch [4][440/744]	lr: 9.226e-03, eta: 0:55:19, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6792, loss_cls: 0.6415, loss: 0.6415, grad_norm: 2.4243
+2022-10-24 19:38:49,816 - pyskl - INFO - Epoch [4][460/744]	lr: 9.214e-03, eta: 0:55:12, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6667, loss_cls: 0.6929, loss: 0.6929, grad_norm: 3.1231
+2022-10-24 19:38:54,798 - pyskl - INFO - Epoch [4][480/744]	lr: 9.203e-03, eta: 0:55:04, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1583, top5_acc: 0.6708, loss_cls: 0.6892, loss: 0.6892, grad_norm: 2.8080
+2022-10-24 19:38:59,809 - pyskl - INFO - Epoch [4][500/744]	lr: 9.192e-03, eta: 0:54:57, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6656, loss_cls: 0.6564, loss: 0.6564, grad_norm: 5.9153
+2022-10-24 19:39:04,810 - pyskl - INFO - Epoch [4][520/744]	lr: 9.180e-03, eta: 0:54:49, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6625, loss_cls: 0.6522, loss: 0.6522, grad_norm: 1.8386
+2022-10-24 19:39:09,792 - pyskl - INFO - Epoch [4][540/744]	lr: 9.168e-03, eta: 0:54:42, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6719, loss_cls: 0.6031, loss: 0.6031, grad_norm: 2.3727
+2022-10-24 19:39:14,783 - pyskl - INFO - Epoch [4][560/744]	lr: 9.157e-03, eta: 0:54:35, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1812, top5_acc: 0.6875, loss_cls: 0.5934, loss: 0.5934, grad_norm: 1.4552
+2022-10-24 19:39:19,830 - pyskl - INFO - Epoch [4][580/744]	lr: 9.145e-03, eta: 0:54:28, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6823, loss_cls: 0.6629, loss: 0.6629, grad_norm: 2.3964
+2022-10-24 19:39:24,827 - pyskl - INFO - Epoch [4][600/744]	lr: 9.133e-03, eta: 0:54:21, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6729, loss_cls: 0.6941, loss: 0.6941, grad_norm: 3.6508
+2022-10-24 19:39:29,868 - pyskl - INFO - Epoch [4][620/744]	lr: 9.121e-03, eta: 0:54:14, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1615, top5_acc: 0.6781, loss_cls: 0.6185, loss: 0.6185, grad_norm: 3.8545
+2022-10-24 19:39:34,920 - pyskl - INFO - Epoch [4][640/744]	lr: 9.109e-03, eta: 0:54:07, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6688, loss_cls: 0.5930, loss: 0.5930, grad_norm: 3.7635
+2022-10-24 19:39:39,953 - pyskl - INFO - Epoch [4][660/744]	lr: 9.097e-03, eta: 0:54:00, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6719, loss_cls: 0.6114, loss: 0.6114, grad_norm: 2.1213
+2022-10-24 19:39:44,967 - pyskl - INFO - Epoch [4][680/744]	lr: 9.085e-03, eta: 0:53:53, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6563, loss_cls: 0.6053, loss: 0.6053, grad_norm: 1.6523
+2022-10-24 19:39:50,010 - pyskl - INFO - Epoch [4][700/744]	lr: 9.073e-03, eta: 0:53:46, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1562, top5_acc: 0.6615, loss_cls: 0.6388, loss: 0.6388, grad_norm: 1.2464
+2022-10-24 19:39:54,990 - pyskl - INFO - Epoch [4][720/744]	lr: 9.061e-03, eta: 0:53:39, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6688, loss_cls: 0.6814, loss: 0.6814, grad_norm: 1.7006
+2022-10-24 19:39:59,885 - pyskl - INFO - Epoch [4][740/744]	lr: 9.048e-03, eta: 0:53:31, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6667, loss_cls: 0.5701, loss: 0.5701, grad_norm: 2.2078
+2022-10-24 19:40:29,137 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:40:29,143 - pyskl - INFO - 
+top1_acc	0.3078
+top5_acc	0.6732
+2022-10-24 19:40:29,143 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:40:29,144 - pyskl - INFO - 
+mean_acc	0.3078
+2022-10-24 19:40:29,235 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_3.pth was removed
+2022-10-24 19:40:30,817 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_4.pth.
+2022-10-24 19:40:30,817 - pyskl - INFO - Best top1_acc is 0.3078 at 4 epoch.
+2022-10-24 19:40:30,818 - pyskl - INFO - Epoch(val) [4][32]	top1_acc: 0.3078, top5_acc: 0.6732, mean_class_accuracy: 0.3078
+2022-10-24 19:40:51,182 - pyskl - INFO - Epoch [5][20/744]	lr: 9.033e-03, eta: 0:54:20, time: 1.017, data_time: 0.775, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6708, loss_cls: 0.6450, loss: 0.6450, grad_norm: 2.6631
+2022-10-24 19:40:56,165 - pyskl - INFO - Epoch [5][40/744]	lr: 9.021e-03, eta: 0:54:12, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6688, loss_cls: 0.5835, loss: 0.5835, grad_norm: 1.5151
+2022-10-24 19:41:01,125 - pyskl - INFO - Epoch [5][60/744]	lr: 9.008e-03, eta: 0:54:05, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6750, loss_cls: 0.6227, loss: 0.6227, grad_norm: 4.6239
+2022-10-24 19:41:06,166 - pyskl - INFO - Epoch [5][80/744]	lr: 8.996e-03, eta: 0:53:58, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6698, loss_cls: 0.6567, loss: 0.6567, grad_norm: 10.8807
+2022-10-24 19:41:11,185 - pyskl - INFO - Epoch [5][100/744]	lr: 8.983e-03, eta: 0:53:50, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6792, loss_cls: 0.6103, loss: 0.6103, grad_norm: 2.8934
+2022-10-24 19:41:16,148 - pyskl - INFO - Epoch [5][120/744]	lr: 8.970e-03, eta: 0:53:43, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1573, top5_acc: 0.6740, loss_cls: 0.7012, loss: 0.7012, grad_norm: 6.0466
+2022-10-24 19:41:21,166 - pyskl - INFO - Epoch [5][140/744]	lr: 8.957e-03, eta: 0:53:36, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6677, loss_cls: 0.6611, loss: 0.6611, grad_norm: 3.0243
+2022-10-24 19:41:26,132 - pyskl - INFO - Epoch [5][160/744]	lr: 8.944e-03, eta: 0:53:28, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6677, loss_cls: 0.6387, loss: 0.6387, grad_norm: 5.0738
+2022-10-24 19:41:31,085 - pyskl - INFO - Epoch [5][180/744]	lr: 8.931e-03, eta: 0:53:21, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1885, top5_acc: 0.6854, loss_cls: 0.7242, loss: 0.7242, grad_norm: 6.2338
+2022-10-24 19:41:36,080 - pyskl - INFO - Epoch [5][200/744]	lr: 8.918e-03, eta: 0:53:14, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1719, top5_acc: 0.6667, loss_cls: 0.7346, loss: 0.7346, grad_norm: 3.6289
+2022-10-24 19:41:41,083 - pyskl - INFO - Epoch [5][220/744]	lr: 8.905e-03, eta: 0:53:07, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6813, loss_cls: 0.7292, loss: 0.7292, grad_norm: 17.0205
+2022-10-24 19:41:46,059 - pyskl - INFO - Epoch [5][240/744]	lr: 8.892e-03, eta: 0:53:00, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6656, loss_cls: 0.7339, loss: 0.7339, grad_norm: 8.4846
+2022-10-24 19:41:51,044 - pyskl - INFO - Epoch [5][260/744]	lr: 8.878e-03, eta: 0:52:52, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1906, top5_acc: 0.6833, loss_cls: 0.6325, loss: 0.6325, grad_norm: 6.0210
+2022-10-24 19:41:56,002 - pyskl - INFO - Epoch [5][280/744]	lr: 8.865e-03, eta: 0:52:45, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1646, top5_acc: 0.6750, loss_cls: 0.6670, loss: 0.6670, grad_norm: 4.9179
+2022-10-24 19:42:01,004 - pyskl - INFO - Epoch [5][300/744]	lr: 8.852e-03, eta: 0:52:38, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6792, loss_cls: 0.6075, loss: 0.6075, grad_norm: 3.9843
+2022-10-24 19:42:06,000 - pyskl - INFO - Epoch [5][320/744]	lr: 8.838e-03, eta: 0:52:31, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6760, loss_cls: 0.5683, loss: 0.5683, grad_norm: 2.1914
+2022-10-24 19:42:10,950 - pyskl - INFO - Epoch [5][340/744]	lr: 8.825e-03, eta: 0:52:24, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6792, loss_cls: 0.6175, loss: 0.6175, grad_norm: 4.6145
+2022-10-24 19:42:15,874 - pyskl - INFO - Epoch [5][360/744]	lr: 8.811e-03, eta: 0:52:17, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6750, loss_cls: 0.6091, loss: 0.6091, grad_norm: 5.3229
+2022-10-24 19:42:20,825 - pyskl - INFO - Epoch [5][380/744]	lr: 8.797e-03, eta: 0:52:10, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6688, loss_cls: 0.6204, loss: 0.6204, grad_norm: 5.5537
+2022-10-24 19:42:25,818 - pyskl - INFO - Epoch [5][400/744]	lr: 8.783e-03, eta: 0:52:03, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6698, loss_cls: 0.6558, loss: 0.6558, grad_norm: 5.6021
+2022-10-24 19:42:30,813 - pyskl - INFO - Epoch [5][420/744]	lr: 8.770e-03, eta: 0:51:56, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6750, loss_cls: 0.6351, loss: 0.6351, grad_norm: 3.2506
+2022-10-24 19:42:35,838 - pyskl - INFO - Epoch [5][440/744]	lr: 8.756e-03, eta: 0:51:49, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6656, loss_cls: 0.6735, loss: 0.6735, grad_norm: 6.0574
+2022-10-24 19:42:40,790 - pyskl - INFO - Epoch [5][460/744]	lr: 8.742e-03, eta: 0:51:42, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6729, loss_cls: 0.6639, loss: 0.6639, grad_norm: 5.0355
+2022-10-24 19:42:45,757 - pyskl - INFO - Epoch [5][480/744]	lr: 8.728e-03, eta: 0:51:35, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1823, top5_acc: 0.6771, loss_cls: 0.6709, loss: 0.6709, grad_norm: 1.4126
+2022-10-24 19:42:50,717 - pyskl - INFO - Epoch [5][500/744]	lr: 8.714e-03, eta: 0:51:28, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1740, top5_acc: 0.6594, loss_cls: 0.6232, loss: 0.6232, grad_norm: 1.8200
+2022-10-24 19:42:55,696 - pyskl - INFO - Epoch [5][520/744]	lr: 8.699e-03, eta: 0:51:21, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1844, top5_acc: 0.6688, loss_cls: 0.5919, loss: 0.5919, grad_norm: 1.3075
+2022-10-24 19:43:00,718 - pyskl - INFO - Epoch [5][540/744]	lr: 8.685e-03, eta: 0:51:15, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1802, top5_acc: 0.6740, loss_cls: 0.5488, loss: 0.5488, grad_norm: 1.3074
+2022-10-24 19:43:05,710 - pyskl - INFO - Epoch [5][560/744]	lr: 8.671e-03, eta: 0:51:08, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1687, top5_acc: 0.6792, loss_cls: 0.5202, loss: 0.5202, grad_norm: 1.0743
+2022-10-24 19:43:10,701 - pyskl - INFO - Epoch [5][580/744]	lr: 8.657e-03, eta: 0:51:01, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6719, loss_cls: 0.5934, loss: 0.5934, grad_norm: 1.8835
+2022-10-24 19:43:15,747 - pyskl - INFO - Epoch [5][600/744]	lr: 8.642e-03, eta: 0:50:55, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6698, loss_cls: 0.5894, loss: 0.5894, grad_norm: 1.3134
+2022-10-24 19:43:20,679 - pyskl - INFO - Epoch [5][620/744]	lr: 8.628e-03, eta: 0:50:48, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.1688, top5_acc: 0.6740, loss_cls: 0.5580, loss: 0.5580, grad_norm: 1.5505
+2022-10-24 19:43:25,669 - pyskl - INFO - Epoch [5][640/744]	lr: 8.613e-03, eta: 0:50:41, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1812, top5_acc: 0.6833, loss_cls: 0.5581, loss: 0.5581, grad_norm: 6.4144
+2022-10-24 19:43:30,667 - pyskl - INFO - Epoch [5][660/744]	lr: 8.598e-03, eta: 0:50:34, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1521, top5_acc: 0.6573, loss_cls: 0.5694, loss: 0.5694, grad_norm: 2.0391
+2022-10-24 19:43:35,698 - pyskl - INFO - Epoch [5][680/744]	lr: 8.584e-03, eta: 0:50:28, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1792, top5_acc: 0.6760, loss_cls: 0.4960, loss: 0.4960, grad_norm: 1.1876
+2022-10-24 19:43:40,654 - pyskl - INFO - Epoch [5][700/744]	lr: 8.569e-03, eta: 0:50:21, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6688, loss_cls: 0.5526, loss: 0.5526, grad_norm: 2.2231
+2022-10-24 19:43:45,669 - pyskl - INFO - Epoch [5][720/744]	lr: 8.554e-03, eta: 0:50:15, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6906, loss_cls: 0.4942, loss: 0.4942, grad_norm: 1.0585
+2022-10-24 19:43:50,592 - pyskl - INFO - Epoch [5][740/744]	lr: 8.539e-03, eta: 0:50:08, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.1792, top5_acc: 0.6667, loss_cls: 0.5423, loss: 0.5423, grad_norm: 1.1206
+2022-10-24 19:44:19,433 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:44:19,439 - pyskl - INFO - 
+top1_acc	0.3020
+top5_acc	0.6549
+2022-10-24 19:44:19,439 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:44:19,440 - pyskl - INFO - 
+mean_acc	0.3020
+2022-10-24 19:44:19,441 - pyskl - INFO - Epoch(val) [5][32]	top1_acc: 0.3020, top5_acc: 0.6549, mean_class_accuracy: 0.3020
+2022-10-24 19:44:40,343 - pyskl - INFO - Epoch [6][20/744]	lr: 8.521e-03, eta: 0:50:44, time: 1.045, data_time: 0.776, memory: 4591, top1_acc: 0.1729, top5_acc: 0.6708, loss_cls: 0.5381, loss: 0.5381, grad_norm: 1.4920
+2022-10-24 19:44:45,315 - pyskl - INFO - Epoch [6][40/744]	lr: 8.506e-03, eta: 0:50:37, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6854, loss_cls: 0.5346, loss: 0.5346, grad_norm: 1.1190
+2022-10-24 19:44:50,311 - pyskl - INFO - Epoch [6][60/744]	lr: 8.491e-03, eta: 0:50:31, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1635, top5_acc: 0.6646, loss_cls: 0.5185, loss: 0.5185, grad_norm: 1.5683
+2022-10-24 19:44:55,295 - pyskl - INFO - Epoch [6][80/744]	lr: 8.476e-03, eta: 0:50:24, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6708, loss_cls: 0.5977, loss: 0.5977, grad_norm: 3.0450
+2022-10-24 19:45:00,314 - pyskl - INFO - Epoch [6][100/744]	lr: 8.461e-03, eta: 0:50:17, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1896, top5_acc: 0.6760, loss_cls: 0.6501, loss: 0.6501, grad_norm: 1.5226
+2022-10-24 19:45:05,253 - pyskl - INFO - Epoch [6][120/744]	lr: 8.446e-03, eta: 0:50:10, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6667, loss_cls: 0.5146, loss: 0.5146, grad_norm: 1.8337
+2022-10-24 19:45:10,189 - pyskl - INFO - Epoch [6][140/744]	lr: 8.430e-03, eta: 0:50:03, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6667, loss_cls: 0.5136, loss: 0.5136, grad_norm: 1.3119
+2022-10-24 19:45:15,091 - pyskl - INFO - Epoch [6][160/744]	lr: 8.415e-03, eta: 0:49:56, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6740, loss_cls: 0.5034, loss: 0.5034, grad_norm: 1.4118
+2022-10-24 19:45:20,127 - pyskl - INFO - Epoch [6][180/744]	lr: 8.399e-03, eta: 0:49:50, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6719, loss_cls: 0.5200, loss: 0.5200, grad_norm: 2.0855
+2022-10-24 19:45:25,134 - pyskl - INFO - Epoch [6][200/744]	lr: 8.384e-03, eta: 0:49:43, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1708, top5_acc: 0.6760, loss_cls: 0.5460, loss: 0.5460, grad_norm: 1.1956
+2022-10-24 19:45:30,070 - pyskl - INFO - Epoch [6][220/744]	lr: 8.368e-03, eta: 0:49:36, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.1687, top5_acc: 0.6604, loss_cls: 0.5503, loss: 0.5503, grad_norm: 0.9207
+2022-10-24 19:45:35,058 - pyskl - INFO - Epoch [6][240/744]	lr: 8.353e-03, eta: 0:49:29, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6802, loss_cls: 0.5013, loss: 0.5013, grad_norm: 1.5651
+2022-10-24 19:45:40,088 - pyskl - INFO - Epoch [6][260/744]	lr: 8.337e-03, eta: 0:49:23, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1771, top5_acc: 0.6729, loss_cls: 0.5112, loss: 0.5112, grad_norm: 0.9291
+2022-10-24 19:45:45,076 - pyskl - INFO - Epoch [6][280/744]	lr: 8.321e-03, eta: 0:49:16, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6750, loss_cls: 0.4993, loss: 0.4993, grad_norm: 1.0361
+2022-10-24 19:45:50,029 - pyskl - INFO - Epoch [6][300/744]	lr: 8.305e-03, eta: 0:49:09, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1906, top5_acc: 0.6875, loss_cls: 0.5140, loss: 0.5140, grad_norm: 1.9073
+2022-10-24 19:45:55,027 - pyskl - INFO - Epoch [6][320/744]	lr: 8.290e-03, eta: 0:49:03, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1698, top5_acc: 0.6781, loss_cls: 0.4982, loss: 0.4982, grad_norm: 1.2783
+2022-10-24 19:46:00,050 - pyskl - INFO - Epoch [6][340/744]	lr: 8.274e-03, eta: 0:48:56, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6729, loss_cls: 0.4943, loss: 0.4943, grad_norm: 0.9445
+2022-10-24 19:46:05,030 - pyskl - INFO - Epoch [6][360/744]	lr: 8.258e-03, eta: 0:48:50, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6740, loss_cls: 0.4729, loss: 0.4729, grad_norm: 1.2618
+2022-10-24 19:46:10,034 - pyskl - INFO - Epoch [6][380/744]	lr: 8.242e-03, eta: 0:48:43, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1812, top5_acc: 0.6719, loss_cls: 0.5225, loss: 0.5225, grad_norm: 1.2583
+2022-10-24 19:46:15,034 - pyskl - INFO - Epoch [6][400/744]	lr: 8.226e-03, eta: 0:48:37, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6875, loss_cls: 0.5080, loss: 0.5080, grad_norm: 1.1992
+2022-10-24 19:46:20,076 - pyskl - INFO - Epoch [6][420/744]	lr: 8.209e-03, eta: 0:48:30, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1719, top5_acc: 0.6781, loss_cls: 0.4841, loss: 0.4841, grad_norm: 1.3707
+2022-10-24 19:46:25,094 - pyskl - INFO - Epoch [6][440/744]	lr: 8.193e-03, eta: 0:48:24, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2042, top5_acc: 0.6771, loss_cls: 0.4621, loss: 0.4621, grad_norm: 2.8978
+2022-10-24 19:46:30,057 - pyskl - INFO - Epoch [6][460/744]	lr: 8.177e-03, eta: 0:48:17, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1687, top5_acc: 0.6760, loss_cls: 0.5290, loss: 0.5290, grad_norm: 1.4063
+2022-10-24 19:46:35,076 - pyskl - INFO - Epoch [6][480/744]	lr: 8.161e-03, eta: 0:48:11, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6844, loss_cls: 0.5008, loss: 0.5008, grad_norm: 1.2758
+2022-10-24 19:46:40,126 - pyskl - INFO - Epoch [6][500/744]	lr: 8.144e-03, eta: 0:48:04, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1948, top5_acc: 0.6698, loss_cls: 0.4938, loss: 0.4938, grad_norm: 1.3272
+2022-10-24 19:46:45,095 - pyskl - INFO - Epoch [6][520/744]	lr: 8.128e-03, eta: 0:47:58, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1781, top5_acc: 0.6719, loss_cls: 0.6998, loss: 0.6998, grad_norm: 3.2126
+2022-10-24 19:46:50,154 - pyskl - INFO - Epoch [6][540/744]	lr: 8.111e-03, eta: 0:47:52, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6792, loss_cls: 0.6048, loss: 0.6048, grad_norm: 3.8473
+2022-10-24 19:46:55,137 - pyskl - INFO - Epoch [6][560/744]	lr: 8.095e-03, eta: 0:47:45, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1802, top5_acc: 0.6750, loss_cls: 0.5977, loss: 0.5977, grad_norm: 2.3445
+2022-10-24 19:47:00,126 - pyskl - INFO - Epoch [6][580/744]	lr: 8.078e-03, eta: 0:47:39, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1687, top5_acc: 0.6667, loss_cls: 0.5765, loss: 0.5765, grad_norm: 10.2498
+2022-10-24 19:47:05,108 - pyskl - INFO - Epoch [6][600/744]	lr: 8.061e-03, eta: 0:47:32, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6802, loss_cls: 0.5609, loss: 0.5609, grad_norm: 3.7216
+2022-10-24 19:47:10,017 - pyskl - INFO - Epoch [6][620/744]	lr: 8.045e-03, eta: 0:47:26, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.1792, top5_acc: 0.6792, loss_cls: 0.6036, loss: 0.6036, grad_norm: 3.0809
+2022-10-24 19:47:14,973 - pyskl - INFO - Epoch [6][640/744]	lr: 8.028e-03, eta: 0:47:19, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1948, top5_acc: 0.6667, loss_cls: 0.5248, loss: 0.5248, grad_norm: 2.2627
+2022-10-24 19:47:20,003 - pyskl - INFO - Epoch [6][660/744]	lr: 8.011e-03, eta: 0:47:13, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1948, top5_acc: 0.6875, loss_cls: 0.4565, loss: 0.4565, grad_norm: 3.1392
+2022-10-24 19:47:24,955 - pyskl - INFO - Epoch [6][680/744]	lr: 7.994e-03, eta: 0:47:06, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.2010, top5_acc: 0.6833, loss_cls: 0.4902, loss: 0.4902, grad_norm: 1.8577
+2022-10-24 19:47:29,894 - pyskl - INFO - Epoch [6][700/744]	lr: 7.977e-03, eta: 0:47:00, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.2021, top5_acc: 0.6833, loss_cls: 0.4858, loss: 0.4858, grad_norm: 1.3335
+2022-10-24 19:47:34,819 - pyskl - INFO - Epoch [6][720/744]	lr: 7.960e-03, eta: 0:46:53, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1885, top5_acc: 0.6740, loss_cls: 0.4770, loss: 0.4770, grad_norm: 1.8461
+2022-10-24 19:47:39,667 - pyskl - INFO - Epoch [6][740/744]	lr: 7.943e-03, eta: 0:46:47, time: 0.242, data_time: 0.001, memory: 4591, top1_acc: 0.1823, top5_acc: 0.6656, loss_cls: 0.4561, loss: 0.4561, grad_norm: 1.9293
+2022-10-24 19:48:08,579 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:48:08,586 - pyskl - INFO - 
+top1_acc	0.3680
+top5_acc	0.7340
+2022-10-24 19:48:08,586 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:48:08,587 - pyskl - INFO - 
+mean_acc	0.3680
+2022-10-24 19:48:08,679 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_4.pth was removed
+2022-10-24 19:48:10,304 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_6.pth.
+2022-10-24 19:48:10,304 - pyskl - INFO - Best top1_acc is 0.3680 at 6 epoch.
+2022-10-24 19:48:10,305 - pyskl - INFO - Epoch(val) [6][32]	top1_acc: 0.3680, top5_acc: 0.7340, mean_class_accuracy: 0.3680
+2022-10-24 19:48:30,521 - pyskl - INFO - Epoch [7][20/744]	lr: 7.923e-03, eta: 0:47:12, time: 1.010, data_time: 0.763, memory: 4591, top1_acc: 0.1813, top5_acc: 0.6708, loss_cls: 0.4282, loss: 0.4282, grad_norm: 1.0944
+2022-10-24 19:48:35,522 - pyskl - INFO - Epoch [7][40/744]	lr: 7.906e-03, eta: 0:47:06, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2062, top5_acc: 0.6927, loss_cls: 0.4382, loss: 0.4382, grad_norm: 1.4879
+2022-10-24 19:48:40,498 - pyskl - INFO - Epoch [7][60/744]	lr: 7.888e-03, eta: 0:46:59, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6813, loss_cls: 0.4315, loss: 0.4315, grad_norm: 1.2219
+2022-10-24 19:48:45,509 - pyskl - INFO - Epoch [7][80/744]	lr: 7.871e-03, eta: 0:46:53, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1917, top5_acc: 0.6719, loss_cls: 0.4585, loss: 0.4585, grad_norm: 1.7735
+2022-10-24 19:48:50,510 - pyskl - INFO - Epoch [7][100/744]	lr: 7.854e-03, eta: 0:46:46, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1979, top5_acc: 0.6906, loss_cls: 0.4209, loss: 0.4209, grad_norm: 1.6612
+2022-10-24 19:48:55,503 - pyskl - INFO - Epoch [7][120/744]	lr: 7.836e-03, eta: 0:46:40, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1812, top5_acc: 0.6813, loss_cls: 0.4906, loss: 0.4906, grad_norm: 1.3542
+2022-10-24 19:49:00,503 - pyskl - INFO - Epoch [7][140/744]	lr: 7.819e-03, eta: 0:46:33, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1958, top5_acc: 0.6833, loss_cls: 0.4366, loss: 0.4366, grad_norm: 2.1686
+2022-10-24 19:49:05,482 - pyskl - INFO - Epoch [7][160/744]	lr: 7.802e-03, eta: 0:46:27, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1865, top5_acc: 0.6792, loss_cls: 0.3866, loss: 0.3866, grad_norm: 2.6043
+2022-10-24 19:49:10,491 - pyskl - INFO - Epoch [7][180/744]	lr: 7.784e-03, eta: 0:46:21, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2083, top5_acc: 0.6813, loss_cls: 0.4627, loss: 0.4627, grad_norm: 8.2097
+2022-10-24 19:49:15,481 - pyskl - INFO - Epoch [7][200/744]	lr: 7.766e-03, eta: 0:46:14, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1760, top5_acc: 0.6635, loss_cls: 0.4454, loss: 0.4454, grad_norm: 1.7523
+2022-10-24 19:49:20,448 - pyskl - INFO - Epoch [7][220/744]	lr: 7.749e-03, eta: 0:46:08, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1813, top5_acc: 0.6771, loss_cls: 0.4848, loss: 0.4848, grad_norm: 2.3025
+2022-10-24 19:49:25,454 - pyskl - INFO - Epoch [7][240/744]	lr: 7.731e-03, eta: 0:46:01, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1771, top5_acc: 0.6656, loss_cls: 0.5111, loss: 0.5111, grad_norm: 1.3269
+2022-10-24 19:49:30,453 - pyskl - INFO - Epoch [7][260/744]	lr: 7.713e-03, eta: 0:45:55, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6813, loss_cls: 0.4694, loss: 0.4694, grad_norm: 1.8573
+2022-10-24 19:49:35,437 - pyskl - INFO - Epoch [7][280/744]	lr: 7.696e-03, eta: 0:45:49, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2083, top5_acc: 0.7010, loss_cls: 0.5210, loss: 0.5210, grad_norm: 2.1032
+2022-10-24 19:49:40,407 - pyskl - INFO - Epoch [7][300/744]	lr: 7.678e-03, eta: 0:45:42, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6813, loss_cls: 0.5267, loss: 0.5267, grad_norm: 1.0112
+2022-10-24 19:49:45,379 - pyskl - INFO - Epoch [7][320/744]	lr: 7.660e-03, eta: 0:45:36, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1677, top5_acc: 0.6677, loss_cls: 0.5322, loss: 0.5322, grad_norm: 1.4971
+2022-10-24 19:49:50,329 - pyskl - INFO - Epoch [7][340/744]	lr: 7.642e-03, eta: 0:45:29, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1802, top5_acc: 0.6760, loss_cls: 0.4244, loss: 0.4244, grad_norm: 1.7285
+2022-10-24 19:49:55,258 - pyskl - INFO - Epoch [7][360/744]	lr: 7.624e-03, eta: 0:45:23, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.1833, top5_acc: 0.6865, loss_cls: 0.4103, loss: 0.4103, grad_norm: 3.8996
+2022-10-24 19:50:00,282 - pyskl - INFO - Epoch [7][380/744]	lr: 7.606e-03, eta: 0:45:17, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2010, top5_acc: 0.6802, loss_cls: 0.4405, loss: 0.4405, grad_norm: 2.7891
+2022-10-24 19:50:05,243 - pyskl - INFO - Epoch [7][400/744]	lr: 7.588e-03, eta: 0:45:10, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1948, top5_acc: 0.6823, loss_cls: 0.4398, loss: 0.4398, grad_norm: 16.2887
+2022-10-24 19:50:10,319 - pyskl - INFO - Epoch [7][420/744]	lr: 7.570e-03, eta: 0:45:04, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1833, top5_acc: 0.6750, loss_cls: 0.4774, loss: 0.4774, grad_norm: 3.2502
+2022-10-24 19:50:15,287 - pyskl - INFO - Epoch [7][440/744]	lr: 7.552e-03, eta: 0:44:58, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1896, top5_acc: 0.6823, loss_cls: 0.5172, loss: 0.5172, grad_norm: 2.1548
+2022-10-24 19:50:20,330 - pyskl - INFO - Epoch [7][460/744]	lr: 7.534e-03, eta: 0:44:52, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1792, top5_acc: 0.6677, loss_cls: 0.4997, loss: 0.4997, grad_norm: 1.5606
+2022-10-24 19:50:25,313 - pyskl - INFO - Epoch [7][480/744]	lr: 7.516e-03, eta: 0:44:46, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1844, top5_acc: 0.6646, loss_cls: 0.4530, loss: 0.4530, grad_norm: 2.7123
+2022-10-24 19:50:30,329 - pyskl - INFO - Epoch [7][500/744]	lr: 7.497e-03, eta: 0:44:39, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6823, loss_cls: 0.5101, loss: 0.5101, grad_norm: 4.2442
+2022-10-24 19:50:35,298 - pyskl - INFO - Epoch [7][520/744]	lr: 7.479e-03, eta: 0:44:33, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1854, top5_acc: 0.6729, loss_cls: 0.4365, loss: 0.4365, grad_norm: 1.6036
+2022-10-24 19:50:40,243 - pyskl - INFO - Epoch [7][540/744]	lr: 7.461e-03, eta: 0:44:27, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1969, top5_acc: 0.6656, loss_cls: 0.4852, loss: 0.4852, grad_norm: 2.7042
+2022-10-24 19:50:45,238 - pyskl - INFO - Epoch [7][560/744]	lr: 7.442e-03, eta: 0:44:21, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1823, top5_acc: 0.6729, loss_cls: 0.4216, loss: 0.4216, grad_norm: 1.5710
+2022-10-24 19:50:50,228 - pyskl - INFO - Epoch [7][580/744]	lr: 7.424e-03, eta: 0:44:14, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1885, top5_acc: 0.6750, loss_cls: 0.4446, loss: 0.4446, grad_norm: 1.8168
+2022-10-24 19:50:55,314 - pyskl - INFO - Epoch [7][600/744]	lr: 7.405e-03, eta: 0:44:08, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.1656, top5_acc: 0.6698, loss_cls: 0.4768, loss: 0.4768, grad_norm: 2.6538
+2022-10-24 19:51:00,320 - pyskl - INFO - Epoch [7][620/744]	lr: 7.387e-03, eta: 0:44:02, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6750, loss_cls: 0.4731, loss: 0.4731, grad_norm: 2.2354
+2022-10-24 19:51:05,341 - pyskl - INFO - Epoch [7][640/744]	lr: 7.368e-03, eta: 0:43:56, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.1865, top5_acc: 0.6813, loss_cls: 0.4419, loss: 0.4419, grad_norm: 1.5617
+2022-10-24 19:51:10,380 - pyskl - INFO - Epoch [7][660/744]	lr: 7.350e-03, eta: 0:43:50, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1979, top5_acc: 0.6906, loss_cls: 0.4369, loss: 0.4369, grad_norm: 1.5339
+2022-10-24 19:51:15,341 - pyskl - INFO - Epoch [7][680/744]	lr: 7.331e-03, eta: 0:43:44, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6760, loss_cls: 0.4455, loss: 0.4455, grad_norm: 3.3307
+2022-10-24 19:51:20,345 - pyskl - INFO - Epoch [7][700/744]	lr: 7.312e-03, eta: 0:43:38, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1906, top5_acc: 0.6802, loss_cls: 0.4645, loss: 0.4645, grad_norm: 1.8460
+2022-10-24 19:51:25,293 - pyskl - INFO - Epoch [7][720/744]	lr: 7.293e-03, eta: 0:43:32, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.1990, top5_acc: 0.6802, loss_cls: 0.4969, loss: 0.4969, grad_norm: 3.7754
+2022-10-24 19:51:30,176 - pyskl - INFO - Epoch [7][740/744]	lr: 7.275e-03, eta: 0:43:25, time: 0.245, data_time: 0.002, memory: 4591, top1_acc: 0.1865, top5_acc: 0.6698, loss_cls: 0.4221, loss: 0.4221, grad_norm: 2.0602
+2022-10-24 19:51:58,840 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:51:58,846 - pyskl - INFO - 
+top1_acc	0.3222
+top5_acc	0.6850
+2022-10-24 19:51:58,846 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:51:58,847 - pyskl - INFO - 
+mean_acc	0.3222
+2022-10-24 19:51:58,848 - pyskl - INFO - Epoch(val) [7][32]	top1_acc: 0.3222, top5_acc: 0.6850, mean_class_accuracy: 0.3222
+2022-10-24 19:52:20,070 - pyskl - INFO - Epoch [8][20/744]	lr: 7.252e-03, eta: 0:43:46, time: 1.060, data_time: 0.788, memory: 4591, top1_acc: 0.1833, top5_acc: 0.6646, loss_cls: 0.5006, loss: 0.5006, grad_norm: 24.2228
+2022-10-24 19:52:25,065 - pyskl - INFO - Epoch [8][40/744]	lr: 7.233e-03, eta: 0:43:40, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1750, top5_acc: 0.6708, loss_cls: 0.4490, loss: 0.4490, grad_norm: 2.9286
+2022-10-24 19:52:30,052 - pyskl - INFO - Epoch [8][60/744]	lr: 7.214e-03, eta: 0:43:34, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2115, top5_acc: 0.6927, loss_cls: 0.4016, loss: 0.4016, grad_norm: 6.1893
+2022-10-24 19:52:35,115 - pyskl - INFO - Epoch [8][80/744]	lr: 7.195e-03, eta: 0:43:27, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1865, top5_acc: 0.6688, loss_cls: 0.3777, loss: 0.3777, grad_norm: 2.4058
+2022-10-24 19:52:40,072 - pyskl - INFO - Epoch [8][100/744]	lr: 7.176e-03, eta: 0:43:21, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2042, top5_acc: 0.6885, loss_cls: 0.4148, loss: 0.4148, grad_norm: 5.4757
+2022-10-24 19:52:45,072 - pyskl - INFO - Epoch [8][120/744]	lr: 7.157e-03, eta: 0:43:15, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.1990, top5_acc: 0.6698, loss_cls: 0.3612, loss: 0.3612, grad_norm: 1.1370
+2022-10-24 19:52:50,064 - pyskl - INFO - Epoch [8][140/744]	lr: 7.138e-03, eta: 0:43:09, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.1833, top5_acc: 0.6792, loss_cls: 0.3864, loss: 0.3864, grad_norm: 1.3076
+2022-10-24 19:52:55,071 - pyskl - INFO - Epoch [8][160/744]	lr: 7.119e-03, eta: 0:43:02, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6854, loss_cls: 0.4102, loss: 0.4102, grad_norm: 2.8344
+2022-10-24 19:53:00,182 - pyskl - INFO - Epoch [8][180/744]	lr: 7.100e-03, eta: 0:42:56, time: 0.256, data_time: 0.001, memory: 4591, top1_acc: 0.1844, top5_acc: 0.6719, loss_cls: 0.4332, loss: 0.4332, grad_norm: 5.1218
+2022-10-24 19:53:05,219 - pyskl - INFO - Epoch [8][200/744]	lr: 7.081e-03, eta: 0:42:50, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1969, top5_acc: 0.6792, loss_cls: 0.4110, loss: 0.4110, grad_norm: 3.4520
+2022-10-24 19:53:10,285 - pyskl - INFO - Epoch [8][220/744]	lr: 7.062e-03, eta: 0:42:44, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1823, top5_acc: 0.6875, loss_cls: 0.4735, loss: 0.4735, grad_norm: 2.1699
+2022-10-24 19:53:15,281 - pyskl - INFO - Epoch [8][240/744]	lr: 7.042e-03, eta: 0:42:38, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.1990, top5_acc: 0.6833, loss_cls: 0.5418, loss: 0.5418, grad_norm: 3.3467
+2022-10-24 19:53:20,339 - pyskl - INFO - Epoch [8][260/744]	lr: 7.023e-03, eta: 0:42:32, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1927, top5_acc: 0.6813, loss_cls: 0.5011, loss: 0.5011, grad_norm: 5.5127
+2022-10-24 19:53:25,414 - pyskl - INFO - Epoch [8][280/744]	lr: 7.004e-03, eta: 0:42:26, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.1958, top5_acc: 0.6698, loss_cls: 0.5204, loss: 0.5204, grad_norm: 5.0927
+2022-10-24 19:53:30,433 - pyskl - INFO - Epoch [8][300/744]	lr: 6.984e-03, eta: 0:42:20, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.1979, top5_acc: 0.6750, loss_cls: 0.4609, loss: 0.4609, grad_norm: 1.4237
+2022-10-24 19:53:35,507 - pyskl - INFO - Epoch [8][320/744]	lr: 6.965e-03, eta: 0:42:14, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.1875, top5_acc: 0.6875, loss_cls: 0.4535, loss: 0.4535, grad_norm: 2.6609
+2022-10-24 19:53:40,543 - pyskl - INFO - Epoch [8][340/744]	lr: 6.946e-03, eta: 0:42:08, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2083, top5_acc: 0.6823, loss_cls: 0.4083, loss: 0.4083, grad_norm: 2.0342
+2022-10-24 19:53:45,518 - pyskl - INFO - Epoch [8][360/744]	lr: 6.926e-03, eta: 0:42:02, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2052, top5_acc: 0.6729, loss_cls: 0.4357, loss: 0.4357, grad_norm: 1.0285
+2022-10-24 19:53:50,596 - pyskl - INFO - Epoch [8][380/744]	lr: 6.907e-03, eta: 0:41:56, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.1990, top5_acc: 0.6688, loss_cls: 0.3658, loss: 0.3658, grad_norm: 3.5379
+2022-10-24 19:53:55,640 - pyskl - INFO - Epoch [8][400/744]	lr: 6.887e-03, eta: 0:41:50, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2188, top5_acc: 0.6958, loss_cls: 0.4368, loss: 0.4368, grad_norm: 1.4977
+2022-10-24 19:54:00,690 - pyskl - INFO - Epoch [8][420/744]	lr: 6.867e-03, eta: 0:41:44, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2198, top5_acc: 0.6823, loss_cls: 0.3675, loss: 0.3675, grad_norm: 1.4648
+2022-10-24 19:54:05,700 - pyskl - INFO - Epoch [8][440/744]	lr: 6.848e-03, eta: 0:41:38, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2167, top5_acc: 0.6833, loss_cls: 0.3562, loss: 0.3562, grad_norm: 2.1102
+2022-10-24 19:54:10,730 - pyskl - INFO - Epoch [8][460/744]	lr: 6.828e-03, eta: 0:41:32, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2000, top5_acc: 0.6760, loss_cls: 0.3915, loss: 0.3915, grad_norm: 2.2332
+2022-10-24 19:54:15,694 - pyskl - INFO - Epoch [8][480/744]	lr: 6.809e-03, eta: 0:41:25, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2052, top5_acc: 0.6854, loss_cls: 0.4064, loss: 0.4064, grad_norm: 0.9864
+2022-10-24 19:54:20,748 - pyskl - INFO - Epoch [8][500/744]	lr: 6.789e-03, eta: 0:41:19, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2125, top5_acc: 0.6781, loss_cls: 0.3852, loss: 0.3852, grad_norm: 0.8827
+2022-10-24 19:54:25,763 - pyskl - INFO - Epoch [8][520/744]	lr: 6.769e-03, eta: 0:41:13, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2135, top5_acc: 0.6823, loss_cls: 0.4329, loss: 0.4329, grad_norm: 1.1913
+2022-10-24 19:54:30,756 - pyskl - INFO - Epoch [8][540/744]	lr: 6.749e-03, eta: 0:41:07, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2135, top5_acc: 0.6906, loss_cls: 0.3964, loss: 0.3964, grad_norm: 0.9541
+2022-10-24 19:54:35,795 - pyskl - INFO - Epoch [8][560/744]	lr: 6.730e-03, eta: 0:41:01, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2344, top5_acc: 0.6948, loss_cls: 0.3597, loss: 0.3597, grad_norm: 1.0169
+2022-10-24 19:54:40,889 - pyskl - INFO - Epoch [8][580/744]	lr: 6.710e-03, eta: 0:40:55, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.2271, top5_acc: 0.7073, loss_cls: 0.4167, loss: 0.4167, grad_norm: 0.8521
+2022-10-24 19:54:45,915 - pyskl - INFO - Epoch [8][600/744]	lr: 6.690e-03, eta: 0:40:49, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2115, top5_acc: 0.6781, loss_cls: 0.3115, loss: 0.3115, grad_norm: 0.8595
+2022-10-24 19:54:50,932 - pyskl - INFO - Epoch [8][620/744]	lr: 6.670e-03, eta: 0:40:43, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2052, top5_acc: 0.6885, loss_cls: 0.3465, loss: 0.3465, grad_norm: 1.7428
+2022-10-24 19:54:56,005 - pyskl - INFO - Epoch [8][640/744]	lr: 6.650e-03, eta: 0:40:38, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2115, top5_acc: 0.6896, loss_cls: 0.3567, loss: 0.3567, grad_norm: 4.6074
+2022-10-24 19:55:00,974 - pyskl - INFO - Epoch [8][660/744]	lr: 6.630e-03, eta: 0:40:31, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2094, top5_acc: 0.6750, loss_cls: 0.3685, loss: 0.3685, grad_norm: 1.3957
+2022-10-24 19:55:05,977 - pyskl - INFO - Epoch [8][680/744]	lr: 6.610e-03, eta: 0:40:26, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2010, top5_acc: 0.6781, loss_cls: 0.3600, loss: 0.3600, grad_norm: 1.2057
+2022-10-24 19:55:10,988 - pyskl - INFO - Epoch [8][700/744]	lr: 6.590e-03, eta: 0:40:20, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2125, top5_acc: 0.6833, loss_cls: 0.3705, loss: 0.3705, grad_norm: 1.0447
+2022-10-24 19:55:15,912 - pyskl - INFO - Epoch [8][720/744]	lr: 6.570e-03, eta: 0:40:13, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.2240, top5_acc: 0.6844, loss_cls: 0.3461, loss: 0.3461, grad_norm: 0.8833
+2022-10-24 19:55:20,867 - pyskl - INFO - Epoch [8][740/744]	lr: 6.550e-03, eta: 0:40:07, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2375, top5_acc: 0.7000, loss_cls: 0.3487, loss: 0.3487, grad_norm: 0.7354
+2022-10-24 19:55:50,008 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:55:50,014 - pyskl - INFO - 
+top1_acc	0.4333
+top5_acc	0.7725
+2022-10-24 19:55:50,014 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:55:50,015 - pyskl - INFO - 
+mean_acc	0.4333
+2022-10-24 19:55:50,119 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_6.pth was removed
+2022-10-24 19:55:51,678 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_8.pth.
+2022-10-24 19:55:51,679 - pyskl - INFO - Best top1_acc is 0.4333 at 8 epoch.
+2022-10-24 19:55:51,679 - pyskl - INFO - Epoch(val) [8][32]	top1_acc: 0.4333, top5_acc: 0.7725, mean_class_accuracy: 0.4333
+2022-10-24 19:56:12,040 - pyskl - INFO - Epoch [9][20/744]	lr: 6.526e-03, eta: 0:40:22, time: 1.017, data_time: 0.767, memory: 4591, top1_acc: 0.2125, top5_acc: 0.6854, loss_cls: 0.3793, loss: 0.3793, grad_norm: 0.9253
+2022-10-24 19:56:17,118 - pyskl - INFO - Epoch [9][40/744]	lr: 6.506e-03, eta: 0:40:16, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2156, top5_acc: 0.6844, loss_cls: 0.3841, loss: 0.3841, grad_norm: 0.7585
+2022-10-24 19:56:22,086 - pyskl - INFO - Epoch [9][60/744]	lr: 6.486e-03, eta: 0:40:10, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2177, top5_acc: 0.6938, loss_cls: 0.3831, loss: 0.3831, grad_norm: 0.8559
+2022-10-24 19:56:27,105 - pyskl - INFO - Epoch [9][80/744]	lr: 6.466e-03, eta: 0:40:03, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2188, top5_acc: 0.6885, loss_cls: 0.3372, loss: 0.3372, grad_norm: 0.9110
+2022-10-24 19:56:32,160 - pyskl - INFO - Epoch [9][100/744]	lr: 6.445e-03, eta: 0:39:57, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2208, top5_acc: 0.6844, loss_cls: 0.3285, loss: 0.3285, grad_norm: 1.5023
+2022-10-24 19:56:37,101 - pyskl - INFO - Epoch [9][120/744]	lr: 6.425e-03, eta: 0:39:51, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.1979, top5_acc: 0.6833, loss_cls: 0.3520, loss: 0.3520, grad_norm: 0.9099
+2022-10-24 19:56:42,116 - pyskl - INFO - Epoch [9][140/744]	lr: 6.405e-03, eta: 0:39:45, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2156, top5_acc: 0.6927, loss_cls: 0.3012, loss: 0.3012, grad_norm: 0.8068
+2022-10-24 19:56:47,130 - pyskl - INFO - Epoch [9][160/744]	lr: 6.385e-03, eta: 0:39:39, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2208, top5_acc: 0.6854, loss_cls: 0.3444, loss: 0.3444, grad_norm: 2.1201
+2022-10-24 19:56:52,193 - pyskl - INFO - Epoch [9][180/744]	lr: 6.364e-03, eta: 0:39:33, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2354, top5_acc: 0.6969, loss_cls: 0.3142, loss: 0.3142, grad_norm: 3.2464
+2022-10-24 19:56:57,196 - pyskl - INFO - Epoch [9][200/744]	lr: 6.344e-03, eta: 0:39:27, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2083, top5_acc: 0.6896, loss_cls: 0.3754, loss: 0.3754, grad_norm: 0.7913
+2022-10-24 19:57:02,220 - pyskl - INFO - Epoch [9][220/744]	lr: 6.324e-03, eta: 0:39:21, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2323, top5_acc: 0.6990, loss_cls: 0.3177, loss: 0.3177, grad_norm: 1.4757
+2022-10-24 19:57:07,292 - pyskl - INFO - Epoch [9][240/744]	lr: 6.303e-03, eta: 0:39:15, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2198, top5_acc: 0.6979, loss_cls: 0.3304, loss: 0.3304, grad_norm: 1.0379
+2022-10-24 19:57:12,408 - pyskl - INFO - Epoch [9][260/744]	lr: 6.283e-03, eta: 0:39:10, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.2260, top5_acc: 0.6906, loss_cls: 0.3100, loss: 0.3100, grad_norm: 1.2321
+2022-10-24 19:57:17,405 - pyskl - INFO - Epoch [9][280/744]	lr: 6.262e-03, eta: 0:39:04, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2125, top5_acc: 0.6865, loss_cls: 0.2953, loss: 0.2953, grad_norm: 0.7461
+2022-10-24 19:57:22,357 - pyskl - INFO - Epoch [9][300/744]	lr: 6.242e-03, eta: 0:38:57, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2052, top5_acc: 0.6885, loss_cls: 0.3157, loss: 0.3157, grad_norm: 0.9809
+2022-10-24 19:57:27,413 - pyskl - INFO - Epoch [9][320/744]	lr: 6.222e-03, eta: 0:38:52, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2396, top5_acc: 0.6927, loss_cls: 0.3304, loss: 0.3304, grad_norm: 0.7780
+2022-10-24 19:57:32,413 - pyskl - INFO - Epoch [9][340/744]	lr: 6.201e-03, eta: 0:38:46, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2302, top5_acc: 0.6917, loss_cls: 0.3090, loss: 0.3090, grad_norm: 1.4799
+2022-10-24 19:57:37,441 - pyskl - INFO - Epoch [9][360/744]	lr: 6.181e-03, eta: 0:38:40, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2323, top5_acc: 0.6885, loss_cls: 0.2958, loss: 0.2958, grad_norm: 0.8196
+2022-10-24 19:57:42,453 - pyskl - INFO - Epoch [9][380/744]	lr: 6.160e-03, eta: 0:38:34, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2260, top5_acc: 0.6875, loss_cls: 0.2548, loss: 0.2548, grad_norm: 0.8258
+2022-10-24 19:57:47,509 - pyskl - INFO - Epoch [9][400/744]	lr: 6.139e-03, eta: 0:38:28, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.1948, top5_acc: 0.6781, loss_cls: 0.3119, loss: 0.3119, grad_norm: 1.0279
+2022-10-24 19:57:52,528 - pyskl - INFO - Epoch [9][420/744]	lr: 6.119e-03, eta: 0:38:22, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2135, top5_acc: 0.6948, loss_cls: 0.3471, loss: 0.3471, grad_norm: 0.8586
+2022-10-24 19:57:57,536 - pyskl - INFO - Epoch [9][440/744]	lr: 6.098e-03, eta: 0:38:16, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2198, top5_acc: 0.6781, loss_cls: 0.2845, loss: 0.2845, grad_norm: 0.5941
+2022-10-24 19:58:02,575 - pyskl - INFO - Epoch [9][460/744]	lr: 6.078e-03, eta: 0:38:10, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2167, top5_acc: 0.6802, loss_cls: 0.3004, loss: 0.3004, grad_norm: 0.8161
+2022-10-24 19:58:07,617 - pyskl - INFO - Epoch [9][480/744]	lr: 6.057e-03, eta: 0:38:04, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2042, top5_acc: 0.6896, loss_cls: 0.3367, loss: 0.3367, grad_norm: 0.8034
+2022-10-24 19:58:12,599 - pyskl - INFO - Epoch [9][500/744]	lr: 6.036e-03, eta: 0:37:58, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2208, top5_acc: 0.6885, loss_cls: 0.3262, loss: 0.3262, grad_norm: 1.0035
+2022-10-24 19:58:17,618 - pyskl - INFO - Epoch [9][520/744]	lr: 6.016e-03, eta: 0:37:52, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2187, top5_acc: 0.6760, loss_cls: 0.3141, loss: 0.3141, grad_norm: 0.7069
+2022-10-24 19:58:22,612 - pyskl - INFO - Epoch [9][540/744]	lr: 5.995e-03, eta: 0:37:46, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.1896, top5_acc: 0.6875, loss_cls: 0.3094, loss: 0.3094, grad_norm: 0.8785
+2022-10-24 19:58:27,707 - pyskl - INFO - Epoch [9][560/744]	lr: 5.974e-03, eta: 0:37:40, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.2188, top5_acc: 0.6906, loss_cls: 0.2967, loss: 0.2967, grad_norm: 1.0610
+2022-10-24 19:58:32,760 - pyskl - INFO - Epoch [9][580/744]	lr: 5.954e-03, eta: 0:37:35, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2417, top5_acc: 0.6854, loss_cls: 0.2816, loss: 0.2816, grad_norm: 2.9163
+2022-10-24 19:58:37,727 - pyskl - INFO - Epoch [9][600/744]	lr: 5.933e-03, eta: 0:37:29, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.2094, top5_acc: 0.6833, loss_cls: 0.2827, loss: 0.2827, grad_norm: 2.3980
+2022-10-24 19:58:42,777 - pyskl - INFO - Epoch [9][620/744]	lr: 5.912e-03, eta: 0:37:23, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2167, top5_acc: 0.6896, loss_cls: 0.2560, loss: 0.2560, grad_norm: 1.3207
+2022-10-24 19:58:47,803 - pyskl - INFO - Epoch [9][640/744]	lr: 5.891e-03, eta: 0:37:17, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2292, top5_acc: 0.6885, loss_cls: 0.2873, loss: 0.2873, grad_norm: 1.1989
+2022-10-24 19:58:52,872 - pyskl - INFO - Epoch [9][660/744]	lr: 5.871e-03, eta: 0:37:11, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2229, top5_acc: 0.6958, loss_cls: 0.3061, loss: 0.3061, grad_norm: 0.8202
+2022-10-24 19:58:57,918 - pyskl - INFO - Epoch [9][680/744]	lr: 5.850e-03, eta: 0:37:05, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2177, top5_acc: 0.6896, loss_cls: 0.3067, loss: 0.3067, grad_norm: 0.7571
+2022-10-24 19:59:02,911 - pyskl - INFO - Epoch [9][700/744]	lr: 5.829e-03, eta: 0:36:59, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2135, top5_acc: 0.6833, loss_cls: 0.2699, loss: 0.2699, grad_norm: 0.8551
+2022-10-24 19:59:07,943 - pyskl - INFO - Epoch [9][720/744]	lr: 5.808e-03, eta: 0:36:54, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2177, top5_acc: 0.6854, loss_cls: 0.3019, loss: 0.3019, grad_norm: 0.7010
+2022-10-24 19:59:12,939 - pyskl - INFO - Epoch [9][740/744]	lr: 5.787e-03, eta: 0:36:48, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2281, top5_acc: 0.6938, loss_cls: 0.2412, loss: 0.2412, grad_norm: 0.6675
+2022-10-24 19:59:41,656 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 19:59:41,662 - pyskl - INFO - 
+top1_acc	0.4438
+top5_acc	0.7863
+2022-10-24 19:59:41,662 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 19:59:41,663 - pyskl - INFO - 
+mean_acc	0.4438
+2022-10-24 19:59:41,776 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_8.pth was removed
+2022-10-24 19:59:43,370 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_9.pth.
+2022-10-24 19:59:43,371 - pyskl - INFO - Best top1_acc is 0.4438 at 9 epoch.
+2022-10-24 19:59:43,371 - pyskl - INFO - Epoch(val) [9][32]	top1_acc: 0.4438, top5_acc: 0.7863, mean_class_accuracy: 0.4438
+2022-10-24 20:00:04,042 - pyskl - INFO - Epoch [10][20/744]	lr: 5.762e-03, eta: 0:36:58, time: 1.033, data_time: 0.781, memory: 4591, top1_acc: 0.1979, top5_acc: 0.6917, loss_cls: 0.2816, loss: 0.2816, grad_norm: 0.7981
+2022-10-24 20:00:09,096 - pyskl - INFO - Epoch [10][40/744]	lr: 5.741e-03, eta: 0:36:53, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2313, top5_acc: 0.6854, loss_cls: 0.2825, loss: 0.2825, grad_norm: 1.1018
+2022-10-24 20:00:14,128 - pyskl - INFO - Epoch [10][60/744]	lr: 5.721e-03, eta: 0:36:47, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2313, top5_acc: 0.6896, loss_cls: 0.3178, loss: 0.3178, grad_norm: 0.9271
+2022-10-24 20:00:19,104 - pyskl - INFO - Epoch [10][80/744]	lr: 5.700e-03, eta: 0:36:41, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2323, top5_acc: 0.6948, loss_cls: 0.2884, loss: 0.2884, grad_norm: 1.1290
+2022-10-24 20:00:24,120 - pyskl - INFO - Epoch [10][100/744]	lr: 5.679e-03, eta: 0:36:35, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2208, top5_acc: 0.6875, loss_cls: 0.2621, loss: 0.2621, grad_norm: 0.9894
+2022-10-24 20:00:29,146 - pyskl - INFO - Epoch [10][120/744]	lr: 5.658e-03, eta: 0:36:29, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2271, top5_acc: 0.6844, loss_cls: 0.2731, loss: 0.2731, grad_norm: 0.7796
+2022-10-24 20:00:34,121 - pyskl - INFO - Epoch [10][140/744]	lr: 5.637e-03, eta: 0:36:23, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2448, top5_acc: 0.7021, loss_cls: 0.2621, loss: 0.2621, grad_norm: 1.1141
+2022-10-24 20:00:39,131 - pyskl - INFO - Epoch [10][160/744]	lr: 5.616e-03, eta: 0:36:17, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2250, top5_acc: 0.6844, loss_cls: 0.2730, loss: 0.2730, grad_norm: 1.3220
+2022-10-24 20:00:44,123 - pyskl - INFO - Epoch [10][180/744]	lr: 5.595e-03, eta: 0:36:11, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2604, top5_acc: 0.6896, loss_cls: 0.2953, loss: 0.2953, grad_norm: 1.5084
+2022-10-24 20:00:49,108 - pyskl - INFO - Epoch [10][200/744]	lr: 5.574e-03, eta: 0:36:05, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2583, top5_acc: 0.6896, loss_cls: 0.2842, loss: 0.2842, grad_norm: 0.7484
+2022-10-24 20:00:54,129 - pyskl - INFO - Epoch [10][220/744]	lr: 5.553e-03, eta: 0:35:59, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2510, top5_acc: 0.6938, loss_cls: 0.2880, loss: 0.2880, grad_norm: 0.6948
+2022-10-24 20:00:59,101 - pyskl - INFO - Epoch [10][240/744]	lr: 5.532e-03, eta: 0:35:53, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2396, top5_acc: 0.7010, loss_cls: 0.2853, loss: 0.2853, grad_norm: 0.9746
+2022-10-24 20:01:04,110 - pyskl - INFO - Epoch [10][260/744]	lr: 5.511e-03, eta: 0:35:47, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2240, top5_acc: 0.6813, loss_cls: 0.2742, loss: 0.2742, grad_norm: 0.6816
+2022-10-24 20:01:09,199 - pyskl - INFO - Epoch [10][280/744]	lr: 5.490e-03, eta: 0:35:42, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2406, top5_acc: 0.6958, loss_cls: 0.2713, loss: 0.2713, grad_norm: 0.5924
+2022-10-24 20:01:14,298 - pyskl - INFO - Epoch [10][300/744]	lr: 5.469e-03, eta: 0:35:36, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2292, top5_acc: 0.6885, loss_cls: 0.2587, loss: 0.2587, grad_norm: 0.8767
+2022-10-24 20:01:19,437 - pyskl - INFO - Epoch [10][320/744]	lr: 5.448e-03, eta: 0:35:30, time: 0.258, data_time: 0.002, memory: 4591, top1_acc: 0.2365, top5_acc: 0.6844, loss_cls: 0.2616, loss: 0.2616, grad_norm: 0.6941
+2022-10-24 20:01:24,457 - pyskl - INFO - Epoch [10][340/744]	lr: 5.427e-03, eta: 0:35:24, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2146, top5_acc: 0.6938, loss_cls: 0.2707, loss: 0.2707, grad_norm: 0.6544
+2022-10-24 20:01:29,565 - pyskl - INFO - Epoch [10][360/744]	lr: 5.406e-03, eta: 0:35:18, time: 0.256, data_time: 0.001, memory: 4591, top1_acc: 0.2302, top5_acc: 0.6948, loss_cls: 0.2635, loss: 0.2635, grad_norm: 1.0329
+2022-10-24 20:01:34,551 - pyskl - INFO - Epoch [10][380/744]	lr: 5.385e-03, eta: 0:35:12, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2271, top5_acc: 0.6979, loss_cls: 0.2952, loss: 0.2952, grad_norm: 1.0708
+2022-10-24 20:01:39,583 - pyskl - INFO - Epoch [10][400/744]	lr: 5.364e-03, eta: 0:35:07, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2177, top5_acc: 0.6896, loss_cls: 0.2461, loss: 0.2461, grad_norm: 0.7385
+2022-10-24 20:01:44,586 - pyskl - INFO - Epoch [10][420/744]	lr: 5.343e-03, eta: 0:35:01, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2385, top5_acc: 0.6927, loss_cls: 0.2651, loss: 0.2651, grad_norm: 1.1840
+2022-10-24 20:01:49,616 - pyskl - INFO - Epoch [10][440/744]	lr: 5.322e-03, eta: 0:34:55, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2333, top5_acc: 0.6844, loss_cls: 0.2561, loss: 0.2561, grad_norm: 0.6868
+2022-10-24 20:01:54,633 - pyskl - INFO - Epoch [10][460/744]	lr: 5.301e-03, eta: 0:34:49, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2490, top5_acc: 0.6958, loss_cls: 0.2358, loss: 0.2358, grad_norm: 0.6834
+2022-10-24 20:01:59,673 - pyskl - INFO - Epoch [10][480/744]	lr: 5.280e-03, eta: 0:34:43, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2240, top5_acc: 0.6854, loss_cls: 0.2346, loss: 0.2346, grad_norm: 0.7528
+2022-10-24 20:02:04,686 - pyskl - INFO - Epoch [10][500/744]	lr: 5.259e-03, eta: 0:34:37, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2260, top5_acc: 0.6885, loss_cls: 0.2280, loss: 0.2280, grad_norm: 0.7135
+2022-10-24 20:02:09,688 - pyskl - INFO - Epoch [10][520/744]	lr: 5.237e-03, eta: 0:34:32, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2240, top5_acc: 0.6958, loss_cls: 0.2465, loss: 0.2465, grad_norm: 0.6696
+2022-10-24 20:02:14,690 - pyskl - INFO - Epoch [10][540/744]	lr: 5.216e-03, eta: 0:34:26, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2104, top5_acc: 0.6802, loss_cls: 0.2893, loss: 0.2893, grad_norm: 1.1462
+2022-10-24 20:02:19,719 - pyskl - INFO - Epoch [10][560/744]	lr: 5.195e-03, eta: 0:34:20, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2396, top5_acc: 0.6906, loss_cls: 0.2497, loss: 0.2497, grad_norm: 0.7612
+2022-10-24 20:02:24,750 - pyskl - INFO - Epoch [10][580/744]	lr: 5.174e-03, eta: 0:34:14, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2344, top5_acc: 0.6990, loss_cls: 0.2301, loss: 0.2301, grad_norm: 0.7782
+2022-10-24 20:02:29,784 - pyskl - INFO - Epoch [10][600/744]	lr: 5.153e-03, eta: 0:34:08, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2500, top5_acc: 0.7083, loss_cls: 0.2686, loss: 0.2686, grad_norm: 1.4706
+2022-10-24 20:02:34,763 - pyskl - INFO - Epoch [10][620/744]	lr: 5.132e-03, eta: 0:34:03, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2240, top5_acc: 0.6927, loss_cls: 0.2488, loss: 0.2488, grad_norm: 0.8055
+2022-10-24 20:02:39,815 - pyskl - INFO - Epoch [10][640/744]	lr: 5.111e-03, eta: 0:33:57, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2271, top5_acc: 0.6781, loss_cls: 0.2521, loss: 0.2521, grad_norm: 0.7488
+2022-10-24 20:02:44,849 - pyskl - INFO - Epoch [10][660/744]	lr: 5.090e-03, eta: 0:33:51, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2365, top5_acc: 0.6896, loss_cls: 0.2305, loss: 0.2305, grad_norm: 0.8335
+2022-10-24 20:02:49,866 - pyskl - INFO - Epoch [10][680/744]	lr: 5.069e-03, eta: 0:33:45, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2208, top5_acc: 0.7031, loss_cls: 0.2211, loss: 0.2211, grad_norm: 0.7607
+2022-10-24 20:02:54,868 - pyskl - INFO - Epoch [10][700/744]	lr: 5.048e-03, eta: 0:33:39, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2469, top5_acc: 0.7021, loss_cls: 0.2378, loss: 0.2378, grad_norm: 0.6587
+2022-10-24 20:02:59,929 - pyskl - INFO - Epoch [10][720/744]	lr: 5.026e-03, eta: 0:33:34, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2365, top5_acc: 0.6896, loss_cls: 0.2359, loss: 0.2359, grad_norm: 0.6518
+2022-10-24 20:03:04,921 - pyskl - INFO - Epoch [10][740/744]	lr: 5.005e-03, eta: 0:33:28, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2427, top5_acc: 0.6948, loss_cls: 0.2207, loss: 0.2207, grad_norm: 0.6722
+2022-10-24 20:03:33,794 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:03:33,800 - pyskl - INFO - 
+top1_acc	0.4131
+top5_acc	0.7451
+2022-10-24 20:03:33,800 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:03:33,801 - pyskl - INFO - 
+mean_acc	0.4131
+2022-10-24 20:03:33,802 - pyskl - INFO - Epoch(val) [10][32]	top1_acc: 0.4131, top5_acc: 0.7451, mean_class_accuracy: 0.4131
+2022-10-24 20:03:54,723 - pyskl - INFO - Epoch [11][20/744]	lr: 4.980e-03, eta: 0:33:36, time: 1.046, data_time: 0.775, memory: 4591, top1_acc: 0.2667, top5_acc: 0.7063, loss_cls: 0.2504, loss: 0.2504, grad_norm: 0.8582
+2022-10-24 20:03:59,708 - pyskl - INFO - Epoch [11][40/744]	lr: 4.959e-03, eta: 0:33:30, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2104, top5_acc: 0.6885, loss_cls: 0.2136, loss: 0.2136, grad_norm: 0.9686
+2022-10-24 20:04:04,764 - pyskl - INFO - Epoch [11][60/744]	lr: 4.938e-03, eta: 0:33:24, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2313, top5_acc: 0.6885, loss_cls: 0.2062, loss: 0.2062, grad_norm: 0.8063
+2022-10-24 20:04:09,775 - pyskl - INFO - Epoch [11][80/744]	lr: 4.917e-03, eta: 0:33:18, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2385, top5_acc: 0.7000, loss_cls: 0.2172, loss: 0.2172, grad_norm: 0.7356
+2022-10-24 20:04:14,724 - pyskl - INFO - Epoch [11][100/744]	lr: 4.895e-03, eta: 0:33:12, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2479, top5_acc: 0.7083, loss_cls: 0.2202, loss: 0.2202, grad_norm: 0.7610
+2022-10-24 20:04:19,697 - pyskl - INFO - Epoch [11][120/744]	lr: 4.874e-03, eta: 0:33:06, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2479, top5_acc: 0.6938, loss_cls: 0.1901, loss: 0.1901, grad_norm: 0.6000
+2022-10-24 20:04:24,694 - pyskl - INFO - Epoch [11][140/744]	lr: 4.853e-03, eta: 0:33:01, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2438, top5_acc: 0.6906, loss_cls: 0.2098, loss: 0.2098, grad_norm: 0.6995
+2022-10-24 20:04:29,638 - pyskl - INFO - Epoch [11][160/744]	lr: 4.832e-03, eta: 0:32:55, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.2458, top5_acc: 0.6896, loss_cls: 0.2030, loss: 0.2030, grad_norm: 0.6232
+2022-10-24 20:04:34,578 - pyskl - INFO - Epoch [11][180/744]	lr: 4.811e-03, eta: 0:32:49, time: 0.247, data_time: 0.002, memory: 4591, top1_acc: 0.2448, top5_acc: 0.7052, loss_cls: 0.2464, loss: 0.2464, grad_norm: 1.2053
+2022-10-24 20:04:39,521 - pyskl - INFO - Epoch [11][200/744]	lr: 4.790e-03, eta: 0:32:43, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2406, top5_acc: 0.6938, loss_cls: 0.2742, loss: 0.2742, grad_norm: 1.1721
+2022-10-24 20:04:44,559 - pyskl - INFO - Epoch [11][220/744]	lr: 4.769e-03, eta: 0:32:37, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2531, top5_acc: 0.7042, loss_cls: 0.2112, loss: 0.2112, grad_norm: 0.7981
+2022-10-24 20:04:49,547 - pyskl - INFO - Epoch [11][240/744]	lr: 4.748e-03, eta: 0:32:31, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2490, top5_acc: 0.7073, loss_cls: 0.2495, loss: 0.2495, grad_norm: 0.6228
+2022-10-24 20:04:54,509 - pyskl - INFO - Epoch [11][260/744]	lr: 4.727e-03, eta: 0:32:25, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2604, top5_acc: 0.7146, loss_cls: 0.2172, loss: 0.2172, grad_norm: 0.8634
+2022-10-24 20:04:59,532 - pyskl - INFO - Epoch [11][280/744]	lr: 4.706e-03, eta: 0:32:20, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2292, top5_acc: 0.6958, loss_cls: 0.2440, loss: 0.2440, grad_norm: 0.9360
+2022-10-24 20:05:04,570 - pyskl - INFO - Epoch [11][300/744]	lr: 4.685e-03, eta: 0:32:14, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2490, top5_acc: 0.7063, loss_cls: 0.2174, loss: 0.2174, grad_norm: 0.6873
+2022-10-24 20:05:09,617 - pyskl - INFO - Epoch [11][320/744]	lr: 4.664e-03, eta: 0:32:08, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2510, top5_acc: 0.6958, loss_cls: 0.1971, loss: 0.1971, grad_norm: 2.4692
+2022-10-24 20:05:14,663 - pyskl - INFO - Epoch [11][340/744]	lr: 4.642e-03, eta: 0:32:02, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2479, top5_acc: 0.7031, loss_cls: 0.2334, loss: 0.2334, grad_norm: 0.6694
+2022-10-24 20:05:19,741 - pyskl - INFO - Epoch [11][360/744]	lr: 4.621e-03, eta: 0:31:57, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2500, top5_acc: 0.7042, loss_cls: 0.2072, loss: 0.2072, grad_norm: 0.8195
+2022-10-24 20:05:24,776 - pyskl - INFO - Epoch [11][380/744]	lr: 4.600e-03, eta: 0:31:51, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2500, top5_acc: 0.6927, loss_cls: 0.2268, loss: 0.2268, grad_norm: 0.8600
+2022-10-24 20:05:29,749 - pyskl - INFO - Epoch [11][400/744]	lr: 4.579e-03, eta: 0:31:45, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2490, top5_acc: 0.7073, loss_cls: 0.2063, loss: 0.2063, grad_norm: 2.2210
+2022-10-24 20:05:34,761 - pyskl - INFO - Epoch [11][420/744]	lr: 4.558e-03, eta: 0:31:39, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2490, top5_acc: 0.6938, loss_cls: 0.2221, loss: 0.2221, grad_norm: 0.7211
+2022-10-24 20:05:39,754 - pyskl - INFO - Epoch [11][440/744]	lr: 4.537e-03, eta: 0:31:34, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2625, top5_acc: 0.6990, loss_cls: 0.2215, loss: 0.2215, grad_norm: 2.1837
+2022-10-24 20:05:44,775 - pyskl - INFO - Epoch [11][460/744]	lr: 4.516e-03, eta: 0:31:28, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2458, top5_acc: 0.7083, loss_cls: 0.2268, loss: 0.2268, grad_norm: 1.0417
+2022-10-24 20:05:49,851 - pyskl - INFO - Epoch [11][480/744]	lr: 4.495e-03, eta: 0:31:22, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2510, top5_acc: 0.6917, loss_cls: 0.2225, loss: 0.2225, grad_norm: 1.7405
+2022-10-24 20:05:54,880 - pyskl - INFO - Epoch [11][500/744]	lr: 4.474e-03, eta: 0:31:16, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2635, top5_acc: 0.7052, loss_cls: 0.2000, loss: 0.2000, grad_norm: 0.9641
+2022-10-24 20:05:59,863 - pyskl - INFO - Epoch [11][520/744]	lr: 4.453e-03, eta: 0:31:11, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2083, top5_acc: 0.6813, loss_cls: 0.2365, loss: 0.2365, grad_norm: 0.6927
+2022-10-24 20:06:04,867 - pyskl - INFO - Epoch [11][540/744]	lr: 4.432e-03, eta: 0:31:05, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2365, top5_acc: 0.6990, loss_cls: 0.2126, loss: 0.2126, grad_norm: 0.5529
+2022-10-24 20:06:09,866 - pyskl - INFO - Epoch [11][560/744]	lr: 4.411e-03, eta: 0:30:59, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2823, top5_acc: 0.6958, loss_cls: 0.2003, loss: 0.2003, grad_norm: 0.5897
+2022-10-24 20:06:14,864 - pyskl - INFO - Epoch [11][580/744]	lr: 4.390e-03, eta: 0:30:53, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2604, top5_acc: 0.7063, loss_cls: 0.2271, loss: 0.2271, grad_norm: 0.8811
+2022-10-24 20:06:19,823 - pyskl - INFO - Epoch [11][600/744]	lr: 4.369e-03, eta: 0:30:48, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2771, top5_acc: 0.7135, loss_cls: 0.2100, loss: 0.2100, grad_norm: 103.6418
+2022-10-24 20:06:24,936 - pyskl - INFO - Epoch [11][620/744]	lr: 4.348e-03, eta: 0:30:42, time: 0.256, data_time: 0.002, memory: 4591, top1_acc: 0.2531, top5_acc: 0.6938, loss_cls: 0.1867, loss: 0.1867, grad_norm: 1.2440
+2022-10-24 20:06:29,960 - pyskl - INFO - Epoch [11][640/744]	lr: 4.327e-03, eta: 0:30:36, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2469, top5_acc: 0.6990, loss_cls: 0.1938, loss: 0.1938, grad_norm: 0.6567
+2022-10-24 20:06:34,946 - pyskl - INFO - Epoch [11][660/744]	lr: 4.307e-03, eta: 0:30:30, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2531, top5_acc: 0.7031, loss_cls: 0.2107, loss: 0.2107, grad_norm: 0.6189
+2022-10-24 20:06:39,991 - pyskl - INFO - Epoch [11][680/744]	lr: 4.286e-03, eta: 0:30:25, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2385, top5_acc: 0.6917, loss_cls: 0.2262, loss: 0.2262, grad_norm: 0.9664
+2022-10-24 20:06:45,003 - pyskl - INFO - Epoch [11][700/744]	lr: 4.265e-03, eta: 0:30:19, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2281, top5_acc: 0.6875, loss_cls: 0.2029, loss: 0.2029, grad_norm: 0.6172
+2022-10-24 20:06:49,895 - pyskl - INFO - Epoch [11][720/744]	lr: 4.244e-03, eta: 0:30:13, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.2510, top5_acc: 0.7021, loss_cls: 0.2028, loss: 0.2028, grad_norm: 0.6279
+2022-10-24 20:06:54,802 - pyskl - INFO - Epoch [11][740/744]	lr: 4.223e-03, eta: 0:30:07, time: 0.245, data_time: 0.001, memory: 4591, top1_acc: 0.2385, top5_acc: 0.6938, loss_cls: 0.2010, loss: 0.2010, grad_norm: 1.5299
+2022-10-24 20:07:23,618 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:07:23,625 - pyskl - INFO - 
+top1_acc	0.4529
+top5_acc	0.7882
+2022-10-24 20:07:23,625 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:07:23,626 - pyskl - INFO - 
+mean_acc	0.4529
+2022-10-24 20:07:23,737 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_9.pth was removed
+2022-10-24 20:07:25,362 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_11.pth.
+2022-10-24 20:07:25,363 - pyskl - INFO - Best top1_acc is 0.4529 at 11 epoch.
+2022-10-24 20:07:25,364 - pyskl - INFO - Epoch(val) [11][32]	top1_acc: 0.4529, top5_acc: 0.7882, mean_class_accuracy: 0.4529
+2022-10-24 20:07:45,616 - pyskl - INFO - Epoch [12][20/744]	lr: 4.198e-03, eta: 0:30:12, time: 1.011, data_time: 0.761, memory: 4591, top1_acc: 0.2458, top5_acc: 0.6927, loss_cls: 0.2077, loss: 0.2077, grad_norm: 1.0940
+2022-10-24 20:07:50,657 - pyskl - INFO - Epoch [12][40/744]	lr: 4.177e-03, eta: 0:30:06, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2333, top5_acc: 0.6938, loss_cls: 0.2233, loss: 0.2233, grad_norm: 0.5920
+2022-10-24 20:07:55,678 - pyskl - INFO - Epoch [12][60/744]	lr: 4.156e-03, eta: 0:30:01, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2333, top5_acc: 0.6844, loss_cls: 0.2003, loss: 0.2003, grad_norm: 0.5516
+2022-10-24 20:08:00,674 - pyskl - INFO - Epoch [12][80/744]	lr: 4.136e-03, eta: 0:29:55, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2552, top5_acc: 0.6958, loss_cls: 0.1923, loss: 0.1923, grad_norm: 0.5557
+2022-10-24 20:08:05,659 - pyskl - INFO - Epoch [12][100/744]	lr: 4.115e-03, eta: 0:29:49, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2427, top5_acc: 0.6938, loss_cls: 0.2044, loss: 0.2044, grad_norm: 0.5975
+2022-10-24 20:08:10,643 - pyskl - INFO - Epoch [12][120/744]	lr: 4.094e-03, eta: 0:29:43, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2531, top5_acc: 0.6885, loss_cls: 0.1820, loss: 0.1820, grad_norm: 0.6392
+2022-10-24 20:08:15,618 - pyskl - INFO - Epoch [12][140/744]	lr: 4.073e-03, eta: 0:29:37, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.2469, top5_acc: 0.6990, loss_cls: 0.1801, loss: 0.1801, grad_norm: 0.7225
+2022-10-24 20:08:20,567 - pyskl - INFO - Epoch [12][160/744]	lr: 4.053e-03, eta: 0:29:32, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.2594, top5_acc: 0.6990, loss_cls: 0.1875, loss: 0.1875, grad_norm: 0.5572
+2022-10-24 20:08:25,511 - pyskl - INFO - Epoch [12][180/744]	lr: 4.032e-03, eta: 0:29:26, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2531, top5_acc: 0.7010, loss_cls: 0.1678, loss: 0.1678, grad_norm: 0.5464
+2022-10-24 20:08:30,423 - pyskl - INFO - Epoch [12][200/744]	lr: 4.011e-03, eta: 0:29:20, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.2552, top5_acc: 0.7010, loss_cls: 0.1726, loss: 0.1726, grad_norm: 0.5790
+2022-10-24 20:08:35,662 - pyskl - INFO - Epoch [12][220/744]	lr: 3.990e-03, eta: 0:29:15, time: 0.261, data_time: 0.001, memory: 4591, top1_acc: 0.2438, top5_acc: 0.6885, loss_cls: 0.1994, loss: 0.1994, grad_norm: 0.6076
+2022-10-24 20:08:40,704 - pyskl - INFO - Epoch [12][240/744]	lr: 3.970e-03, eta: 0:29:09, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2729, top5_acc: 0.7042, loss_cls: 0.2037, loss: 0.2037, grad_norm: 0.6478
+2022-10-24 20:08:45,727 - pyskl - INFO - Epoch [12][260/744]	lr: 3.949e-03, eta: 0:29:03, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2427, top5_acc: 0.6885, loss_cls: 0.1708, loss: 0.1708, grad_norm: 0.5036
+2022-10-24 20:08:50,799 - pyskl - INFO - Epoch [12][280/744]	lr: 3.928e-03, eta: 0:28:57, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2406, top5_acc: 0.6969, loss_cls: 0.2207, loss: 0.2207, grad_norm: 0.6132
+2022-10-24 20:08:55,773 - pyskl - INFO - Epoch [12][300/744]	lr: 3.908e-03, eta: 0:28:52, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2594, top5_acc: 0.7083, loss_cls: 0.2262, loss: 0.2262, grad_norm: 0.5801
+2022-10-24 20:09:00,841 - pyskl - INFO - Epoch [12][320/744]	lr: 3.887e-03, eta: 0:28:46, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7063, loss_cls: 0.1980, loss: 0.1980, grad_norm: 0.5747
+2022-10-24 20:09:05,850 - pyskl - INFO - Epoch [12][340/744]	lr: 3.867e-03, eta: 0:28:40, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2562, top5_acc: 0.7010, loss_cls: 0.1617, loss: 0.1617, grad_norm: 0.4820
+2022-10-24 20:09:10,922 - pyskl - INFO - Epoch [12][360/744]	lr: 3.846e-03, eta: 0:28:35, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2635, top5_acc: 0.6948, loss_cls: 0.1788, loss: 0.1788, grad_norm: 0.6321
+2022-10-24 20:09:15,927 - pyskl - INFO - Epoch [12][380/744]	lr: 3.826e-03, eta: 0:28:29, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2813, top5_acc: 0.7042, loss_cls: 0.1928, loss: 0.1928, grad_norm: 0.7844
+2022-10-24 20:09:20,920 - pyskl - INFO - Epoch [12][400/744]	lr: 3.805e-03, eta: 0:28:23, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2583, top5_acc: 0.6938, loss_cls: 0.1553, loss: 0.1553, grad_norm: 0.5153
+2022-10-24 20:09:25,951 - pyskl - INFO - Epoch [12][420/744]	lr: 3.785e-03, eta: 0:28:17, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2906, top5_acc: 0.7115, loss_cls: 0.1834, loss: 0.1834, grad_norm: 0.5675
+2022-10-24 20:09:30,997 - pyskl - INFO - Epoch [12][440/744]	lr: 3.764e-03, eta: 0:28:12, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2854, top5_acc: 0.7063, loss_cls: 0.1972, loss: 0.1972, grad_norm: 0.5970
+2022-10-24 20:09:36,078 - pyskl - INFO - Epoch [12][460/744]	lr: 3.744e-03, eta: 0:28:06, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2604, top5_acc: 0.7094, loss_cls: 0.1795, loss: 0.1795, grad_norm: 0.5324
+2022-10-24 20:09:41,159 - pyskl - INFO - Epoch [12][480/744]	lr: 3.723e-03, eta: 0:28:00, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2646, top5_acc: 0.6927, loss_cls: 0.1782, loss: 0.1782, grad_norm: 0.5062
+2022-10-24 20:09:46,203 - pyskl - INFO - Epoch [12][500/744]	lr: 3.703e-03, eta: 0:27:55, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2625, top5_acc: 0.6948, loss_cls: 0.1843, loss: 0.1843, grad_norm: 0.5638
+2022-10-24 20:09:51,244 - pyskl - INFO - Epoch [12][520/744]	lr: 3.682e-03, eta: 0:27:49, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2552, top5_acc: 0.6990, loss_cls: 0.1796, loss: 0.1796, grad_norm: 0.5960
+2022-10-24 20:09:56,296 - pyskl - INFO - Epoch [12][540/744]	lr: 3.662e-03, eta: 0:27:44, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2615, top5_acc: 0.6896, loss_cls: 0.1857, loss: 0.1857, grad_norm: 0.9898
+2022-10-24 20:10:01,329 - pyskl - INFO - Epoch [12][560/744]	lr: 3.642e-03, eta: 0:27:38, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2604, top5_acc: 0.7042, loss_cls: 0.1879, loss: 0.1879, grad_norm: 0.5150
+2022-10-24 20:10:06,341 - pyskl - INFO - Epoch [12][580/744]	lr: 3.621e-03, eta: 0:27:32, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2427, top5_acc: 0.6979, loss_cls: 0.1875, loss: 0.1875, grad_norm: 0.7983
+2022-10-24 20:10:11,425 - pyskl - INFO - Epoch [12][600/744]	lr: 3.601e-03, eta: 0:27:27, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2635, top5_acc: 0.7042, loss_cls: 0.1635, loss: 0.1635, grad_norm: 0.6336
+2022-10-24 20:10:16,396 - pyskl - INFO - Epoch [12][620/744]	lr: 3.581e-03, eta: 0:27:21, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2583, top5_acc: 0.6948, loss_cls: 0.1557, loss: 0.1557, grad_norm: 1.0202
+2022-10-24 20:10:21,426 - pyskl - INFO - Epoch [12][640/744]	lr: 3.561e-03, eta: 0:27:15, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2677, top5_acc: 0.7135, loss_cls: 0.1668, loss: 0.1668, grad_norm: 0.7923
+2022-10-24 20:10:26,440 - pyskl - INFO - Epoch [12][660/744]	lr: 3.540e-03, eta: 0:27:10, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2615, top5_acc: 0.6958, loss_cls: 0.1586, loss: 0.1586, grad_norm: 1.3166
+2022-10-24 20:10:31,490 - pyskl - INFO - Epoch [12][680/744]	lr: 3.520e-03, eta: 0:27:04, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2813, top5_acc: 0.7198, loss_cls: 0.1609, loss: 0.1609, grad_norm: 0.6393
+2022-10-24 20:10:36,466 - pyskl - INFO - Epoch [12][700/744]	lr: 3.500e-03, eta: 0:26:58, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2625, top5_acc: 0.7052, loss_cls: 0.1814, loss: 0.1814, grad_norm: 0.7291
+2022-10-24 20:10:41,555 - pyskl - INFO - Epoch [12][720/744]	lr: 3.480e-03, eta: 0:26:53, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2823, top5_acc: 0.7083, loss_cls: 0.1913, loss: 0.1913, grad_norm: 0.6594
+2022-10-24 20:10:46,449 - pyskl - INFO - Epoch [12][740/744]	lr: 3.460e-03, eta: 0:26:47, time: 0.245, data_time: 0.002, memory: 4591, top1_acc: 0.2542, top5_acc: 0.7125, loss_cls: 0.1674, loss: 0.1674, grad_norm: 0.5664
+2022-10-24 20:11:15,364 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:11:15,370 - pyskl - INFO - 
+top1_acc	0.4183
+top5_acc	0.7588
+2022-10-24 20:11:15,370 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:11:15,371 - pyskl - INFO - 
+mean_acc	0.4183
+2022-10-24 20:11:15,372 - pyskl - INFO - Epoch(val) [12][32]	top1_acc: 0.4183, top5_acc: 0.7588, mean_class_accuracy: 0.4183
+2022-10-24 20:11:36,373 - pyskl - INFO - Epoch [13][20/744]	lr: 3.436e-03, eta: 0:26:50, time: 1.049, data_time: 0.775, memory: 4591, top1_acc: 0.2677, top5_acc: 0.7177, loss_cls: 0.1759, loss: 0.1759, grad_norm: 0.5951
+2022-10-24 20:11:41,393 - pyskl - INFO - Epoch [13][40/744]	lr: 3.416e-03, eta: 0:26:44, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2594, top5_acc: 0.6917, loss_cls: 0.1569, loss: 0.1569, grad_norm: 0.5391
+2022-10-24 20:11:46,440 - pyskl - INFO - Epoch [13][60/744]	lr: 3.396e-03, eta: 0:26:39, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2583, top5_acc: 0.6990, loss_cls: 0.1472, loss: 0.1472, grad_norm: 0.5734
+2022-10-24 20:11:51,530 - pyskl - INFO - Epoch [13][80/744]	lr: 3.376e-03, eta: 0:26:33, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2573, top5_acc: 0.7021, loss_cls: 0.1494, loss: 0.1494, grad_norm: 0.4646
+2022-10-24 20:11:56,504 - pyskl - INFO - Epoch [13][100/744]	lr: 3.356e-03, eta: 0:26:27, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7125, loss_cls: 0.1629, loss: 0.1629, grad_norm: 0.5878
+2022-10-24 20:12:01,457 - pyskl - INFO - Epoch [13][120/744]	lr: 3.336e-03, eta: 0:26:21, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2323, top5_acc: 0.7010, loss_cls: 0.1563, loss: 0.1563, grad_norm: 0.7113
+2022-10-24 20:12:06,433 - pyskl - INFO - Epoch [13][140/744]	lr: 3.316e-03, eta: 0:26:16, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.2719, top5_acc: 0.7021, loss_cls: 0.1530, loss: 0.1530, grad_norm: 0.6167
+2022-10-24 20:12:11,392 - pyskl - INFO - Epoch [13][160/744]	lr: 3.296e-03, eta: 0:26:10, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2677, top5_acc: 0.7052, loss_cls: 0.1577, loss: 0.1577, grad_norm: 0.8427
+2022-10-24 20:12:16,411 - pyskl - INFO - Epoch [13][180/744]	lr: 3.276e-03, eta: 0:26:04, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2313, top5_acc: 0.7010, loss_cls: 0.1875, loss: 0.1875, grad_norm: 0.6514
+2022-10-24 20:12:21,500 - pyskl - INFO - Epoch [13][200/744]	lr: 3.257e-03, eta: 0:25:59, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2667, top5_acc: 0.7031, loss_cls: 0.1547, loss: 0.1547, grad_norm: 0.5052
+2022-10-24 20:12:26,512 - pyskl - INFO - Epoch [13][220/744]	lr: 3.237e-03, eta: 0:25:53, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7167, loss_cls: 0.1635, loss: 0.1635, grad_norm: 0.4890
+2022-10-24 20:12:31,500 - pyskl - INFO - Epoch [13][240/744]	lr: 3.217e-03, eta: 0:25:47, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2625, top5_acc: 0.7010, loss_cls: 0.1428, loss: 0.1428, grad_norm: 0.5099
+2022-10-24 20:12:36,527 - pyskl - INFO - Epoch [13][260/744]	lr: 3.197e-03, eta: 0:25:42, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2344, top5_acc: 0.6917, loss_cls: 0.1539, loss: 0.1539, grad_norm: 0.5347
+2022-10-24 20:12:41,574 - pyskl - INFO - Epoch [13][280/744]	lr: 3.178e-03, eta: 0:25:36, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2677, top5_acc: 0.7104, loss_cls: 0.1691, loss: 0.1691, grad_norm: 0.5326
+2022-10-24 20:12:46,610 - pyskl - INFO - Epoch [13][300/744]	lr: 3.158e-03, eta: 0:25:30, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.2656, top5_acc: 0.7010, loss_cls: 0.1592, loss: 0.1592, grad_norm: 0.4592
+2022-10-24 20:12:51,688 - pyskl - INFO - Epoch [13][320/744]	lr: 3.138e-03, eta: 0:25:25, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2917, top5_acc: 0.7198, loss_cls: 0.1541, loss: 0.1541, grad_norm: 1.2762
+2022-10-24 20:12:56,682 - pyskl - INFO - Epoch [13][340/744]	lr: 3.119e-03, eta: 0:25:19, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2490, top5_acc: 0.6927, loss_cls: 0.1485, loss: 0.1485, grad_norm: 0.6567
+2022-10-24 20:13:01,741 - pyskl - INFO - Epoch [13][360/744]	lr: 3.099e-03, eta: 0:25:14, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2687, top5_acc: 0.7042, loss_cls: 0.1548, loss: 0.1548, grad_norm: 0.6312
+2022-10-24 20:13:06,790 - pyskl - INFO - Epoch [13][380/744]	lr: 3.080e-03, eta: 0:25:08, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2646, top5_acc: 0.7031, loss_cls: 0.1356, loss: 0.1356, grad_norm: 0.7739
+2022-10-24 20:13:11,846 - pyskl - INFO - Epoch [13][400/744]	lr: 3.060e-03, eta: 0:25:02, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7021, loss_cls: 0.1439, loss: 0.1439, grad_norm: 0.4540
+2022-10-24 20:13:16,818 - pyskl - INFO - Epoch [13][420/744]	lr: 3.041e-03, eta: 0:24:57, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2656, top5_acc: 0.7063, loss_cls: 0.1394, loss: 0.1394, grad_norm: 0.4782
+2022-10-24 20:13:21,840 - pyskl - INFO - Epoch [13][440/744]	lr: 3.021e-03, eta: 0:24:51, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2531, top5_acc: 0.6990, loss_cls: 0.1614, loss: 0.1614, grad_norm: 0.4799
+2022-10-24 20:13:26,784 - pyskl - INFO - Epoch [13][460/744]	lr: 3.002e-03, eta: 0:24:45, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2688, top5_acc: 0.7031, loss_cls: 0.1609, loss: 0.1609, grad_norm: 0.5518
+2022-10-24 20:13:31,775 - pyskl - INFO - Epoch [13][480/744]	lr: 2.983e-03, eta: 0:24:40, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2938, top5_acc: 0.7250, loss_cls: 0.1360, loss: 0.1360, grad_norm: 0.5458
+2022-10-24 20:13:36,727 - pyskl - INFO - Epoch [13][500/744]	lr: 2.963e-03, eta: 0:24:34, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2698, top5_acc: 0.7073, loss_cls: 0.1319, loss: 0.1319, grad_norm: 0.4477
+2022-10-24 20:13:41,737 - pyskl - INFO - Epoch [13][520/744]	lr: 2.944e-03, eta: 0:24:28, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2833, top5_acc: 0.7094, loss_cls: 0.1398, loss: 0.1398, grad_norm: 0.5150
+2022-10-24 20:13:46,699 - pyskl - INFO - Epoch [13][540/744]	lr: 2.925e-03, eta: 0:24:23, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7188, loss_cls: 0.1466, loss: 0.1466, grad_norm: 0.4912
+2022-10-24 20:13:51,701 - pyskl - INFO - Epoch [13][560/744]	lr: 2.906e-03, eta: 0:24:17, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2740, top5_acc: 0.7125, loss_cls: 0.1610, loss: 0.1610, grad_norm: 0.7578
+2022-10-24 20:13:56,716 - pyskl - INFO - Epoch [13][580/744]	lr: 2.887e-03, eta: 0:24:11, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2698, top5_acc: 0.7063, loss_cls: 0.1347, loss: 0.1347, grad_norm: 0.4921
+2022-10-24 20:14:01,727 - pyskl - INFO - Epoch [13][600/744]	lr: 2.867e-03, eta: 0:24:06, time: 0.252, data_time: 0.003, memory: 4591, top1_acc: 0.2844, top5_acc: 0.7250, loss_cls: 0.1332, loss: 0.1332, grad_norm: 0.7487
+2022-10-24 20:14:06,731 - pyskl - INFO - Epoch [13][620/744]	lr: 2.848e-03, eta: 0:24:00, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2708, top5_acc: 0.6958, loss_cls: 0.1732, loss: 0.1732, grad_norm: 0.6741
+2022-10-24 20:14:11,678 - pyskl - INFO - Epoch [13][640/744]	lr: 2.829e-03, eta: 0:23:54, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2427, top5_acc: 0.7073, loss_cls: 0.1654, loss: 0.1654, grad_norm: 0.6521
+2022-10-24 20:14:16,764 - pyskl - INFO - Epoch [13][660/744]	lr: 2.810e-03, eta: 0:23:49, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2625, top5_acc: 0.7115, loss_cls: 0.1621, loss: 0.1621, grad_norm: 0.6741
+2022-10-24 20:14:21,838 - pyskl - INFO - Epoch [13][680/744]	lr: 2.791e-03, eta: 0:23:43, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7031, loss_cls: 0.1740, loss: 0.1740, grad_norm: 0.7431
+2022-10-24 20:14:26,892 - pyskl - INFO - Epoch [13][700/744]	lr: 2.772e-03, eta: 0:23:38, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7177, loss_cls: 0.1543, loss: 0.1543, grad_norm: 1.1780
+2022-10-24 20:14:31,923 - pyskl - INFO - Epoch [13][720/744]	lr: 2.754e-03, eta: 0:23:32, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2854, top5_acc: 0.7188, loss_cls: 0.1502, loss: 0.1502, grad_norm: 0.4672
+2022-10-24 20:14:36,873 - pyskl - INFO - Epoch [13][740/744]	lr: 2.735e-03, eta: 0:23:26, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2948, top5_acc: 0.7167, loss_cls: 0.1627, loss: 0.1627, grad_norm: 0.5240
+2022-10-24 20:15:05,878 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:15:05,884 - pyskl - INFO - 
+top1_acc	0.4608
+top5_acc	0.7948
+2022-10-24 20:15:05,884 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:15:05,885 - pyskl - INFO - 
+mean_acc	0.4608
+2022-10-24 20:15:05,997 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_11.pth was removed
+2022-10-24 20:15:07,570 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_13.pth.
+2022-10-24 20:15:07,570 - pyskl - INFO - Best top1_acc is 0.4608 at 13 epoch.
+2022-10-24 20:15:07,571 - pyskl - INFO - Epoch(val) [13][32]	top1_acc: 0.4608, top5_acc: 0.7948, mean_class_accuracy: 0.4608
+2022-10-24 20:15:27,746 - pyskl - INFO - Epoch [14][20/744]	lr: 2.712e-03, eta: 0:23:27, time: 1.008, data_time: 0.753, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7219, loss_cls: 0.1188, loss: 0.1188, grad_norm: 0.4492
+2022-10-24 20:15:32,763 - pyskl - INFO - Epoch [14][40/744]	lr: 2.693e-03, eta: 0:23:22, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2927, top5_acc: 0.7167, loss_cls: 0.1363, loss: 0.1363, grad_norm: 0.6283
+2022-10-24 20:15:37,744 - pyskl - INFO - Epoch [14][60/744]	lr: 2.675e-03, eta: 0:23:16, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2990, top5_acc: 0.7188, loss_cls: 0.1209, loss: 0.1209, grad_norm: 0.4567
+2022-10-24 20:15:42,798 - pyskl - INFO - Epoch [14][80/744]	lr: 2.656e-03, eta: 0:23:10, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7135, loss_cls: 0.1493, loss: 0.1493, grad_norm: 0.4749
+2022-10-24 20:15:47,748 - pyskl - INFO - Epoch [14][100/744]	lr: 2.637e-03, eta: 0:23:05, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7333, loss_cls: 0.1231, loss: 0.1231, grad_norm: 0.4388
+2022-10-24 20:15:52,687 - pyskl - INFO - Epoch [14][120/744]	lr: 2.619e-03, eta: 0:22:59, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.3073, top5_acc: 0.7188, loss_cls: 0.1412, loss: 0.1412, grad_norm: 0.4638
+2022-10-24 20:15:57,748 - pyskl - INFO - Epoch [14][140/744]	lr: 2.600e-03, eta: 0:22:53, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2844, top5_acc: 0.7094, loss_cls: 0.1536, loss: 0.1536, grad_norm: 0.5111
+2022-10-24 20:16:02,781 - pyskl - INFO - Epoch [14][160/744]	lr: 2.582e-03, eta: 0:22:48, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3073, top5_acc: 0.7208, loss_cls: 0.1307, loss: 0.1307, grad_norm: 0.5364
+2022-10-24 20:16:07,817 - pyskl - INFO - Epoch [14][180/744]	lr: 2.563e-03, eta: 0:22:42, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3031, top5_acc: 0.7135, loss_cls: 0.1300, loss: 0.1300, grad_norm: 0.5377
+2022-10-24 20:16:12,903 - pyskl - INFO - Epoch [14][200/744]	lr: 2.545e-03, eta: 0:22:37, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2927, top5_acc: 0.7104, loss_cls: 0.1388, loss: 0.1388, grad_norm: 0.5707
+2022-10-24 20:16:18,016 - pyskl - INFO - Epoch [14][220/744]	lr: 2.527e-03, eta: 0:22:31, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3031, top5_acc: 0.7135, loss_cls: 0.1585, loss: 0.1585, grad_norm: 0.5352
+2022-10-24 20:16:23,061 - pyskl - INFO - Epoch [14][240/744]	lr: 2.508e-03, eta: 0:22:25, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2656, top5_acc: 0.7115, loss_cls: 0.1481, loss: 0.1481, grad_norm: 0.5689
+2022-10-24 20:16:28,097 - pyskl - INFO - Epoch [14][260/744]	lr: 2.490e-03, eta: 0:22:20, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2667, top5_acc: 0.7052, loss_cls: 0.1331, loss: 0.1331, grad_norm: 0.7535
+2022-10-24 20:16:33,150 - pyskl - INFO - Epoch [14][280/744]	lr: 2.472e-03, eta: 0:22:14, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2906, top5_acc: 0.7156, loss_cls: 0.1263, loss: 0.1263, grad_norm: 0.4284
+2022-10-24 20:16:38,247 - pyskl - INFO - Epoch [14][300/744]	lr: 2.454e-03, eta: 0:22:09, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7094, loss_cls: 0.1328, loss: 0.1328, grad_norm: 0.6212
+2022-10-24 20:16:43,303 - pyskl - INFO - Epoch [14][320/744]	lr: 2.435e-03, eta: 0:22:03, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.3271, top5_acc: 0.7208, loss_cls: 0.1223, loss: 0.1223, grad_norm: 1.4733
+2022-10-24 20:16:48,361 - pyskl - INFO - Epoch [14][340/744]	lr: 2.417e-03, eta: 0:21:57, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2927, top5_acc: 0.7073, loss_cls: 0.1271, loss: 0.1271, grad_norm: 0.4825
+2022-10-24 20:16:53,419 - pyskl - INFO - Epoch [14][360/744]	lr: 2.399e-03, eta: 0:21:52, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.2708, top5_acc: 0.7094, loss_cls: 0.1301, loss: 0.1301, grad_norm: 0.5477
+2022-10-24 20:16:58,517 - pyskl - INFO - Epoch [14][380/744]	lr: 2.381e-03, eta: 0:21:46, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2958, top5_acc: 0.7219, loss_cls: 0.1154, loss: 0.1154, grad_norm: 0.8980
+2022-10-24 20:17:03,509 - pyskl - INFO - Epoch [14][400/744]	lr: 2.363e-03, eta: 0:21:41, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2594, top5_acc: 0.7042, loss_cls: 0.1294, loss: 0.1294, grad_norm: 0.6146
+2022-10-24 20:17:08,564 - pyskl - INFO - Epoch [14][420/744]	lr: 2.345e-03, eta: 0:21:35, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2750, top5_acc: 0.7115, loss_cls: 0.1181, loss: 0.1181, grad_norm: 0.6769
+2022-10-24 20:17:13,572 - pyskl - INFO - Epoch [14][440/744]	lr: 2.327e-03, eta: 0:21:29, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2646, top5_acc: 0.6896, loss_cls: 0.1481, loss: 0.1481, grad_norm: 0.5475
+2022-10-24 20:17:18,657 - pyskl - INFO - Epoch [14][460/744]	lr: 2.310e-03, eta: 0:21:24, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7281, loss_cls: 0.1409, loss: 0.1409, grad_norm: 0.4972
+2022-10-24 20:17:23,670 - pyskl - INFO - Epoch [14][480/744]	lr: 2.292e-03, eta: 0:21:18, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2885, top5_acc: 0.7031, loss_cls: 0.1471, loss: 0.1471, grad_norm: 2.7526
+2022-10-24 20:17:28,710 - pyskl - INFO - Epoch [14][500/744]	lr: 2.274e-03, eta: 0:21:13, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2698, top5_acc: 0.6958, loss_cls: 0.1551, loss: 0.1551, grad_norm: 0.5306
+2022-10-24 20:17:33,773 - pyskl - INFO - Epoch [14][520/744]	lr: 2.256e-03, eta: 0:21:07, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2698, top5_acc: 0.7083, loss_cls: 0.1172, loss: 0.1172, grad_norm: 0.5698
+2022-10-24 20:17:38,845 - pyskl - INFO - Epoch [14][540/744]	lr: 2.239e-03, eta: 0:21:02, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2646, top5_acc: 0.6917, loss_cls: 0.1332, loss: 0.1332, grad_norm: 0.6669
+2022-10-24 20:17:43,866 - pyskl - INFO - Epoch [14][560/744]	lr: 2.221e-03, eta: 0:20:56, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2823, top5_acc: 0.7031, loss_cls: 0.1181, loss: 0.1181, grad_norm: 0.4394
+2022-10-24 20:17:48,860 - pyskl - INFO - Epoch [14][580/744]	lr: 2.204e-03, eta: 0:20:50, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2760, top5_acc: 0.7042, loss_cls: 0.1339, loss: 0.1339, grad_norm: 0.5213
+2022-10-24 20:17:53,847 - pyskl - INFO - Epoch [14][600/744]	lr: 2.186e-03, eta: 0:20:45, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7219, loss_cls: 0.1157, loss: 0.1157, grad_norm: 0.4810
+2022-10-24 20:17:58,926 - pyskl - INFO - Epoch [14][620/744]	lr: 2.169e-03, eta: 0:20:39, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2917, top5_acc: 0.7083, loss_cls: 0.1189, loss: 0.1189, grad_norm: 0.5055
+2022-10-24 20:18:03,938 - pyskl - INFO - Epoch [14][640/744]	lr: 2.151e-03, eta: 0:20:34, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2865, top5_acc: 0.7083, loss_cls: 0.1289, loss: 0.1289, grad_norm: 0.5698
+2022-10-24 20:18:08,942 - pyskl - INFO - Epoch [14][660/744]	lr: 2.134e-03, eta: 0:20:28, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2823, top5_acc: 0.7073, loss_cls: 0.1106, loss: 0.1106, grad_norm: 0.5910
+2022-10-24 20:18:14,058 - pyskl - INFO - Epoch [14][680/744]	lr: 2.117e-03, eta: 0:20:23, time: 0.256, data_time: 0.001, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7135, loss_cls: 0.1105, loss: 0.1105, grad_norm: 0.5579
+2022-10-24 20:18:19,108 - pyskl - INFO - Epoch [14][700/744]	lr: 2.100e-03, eta: 0:20:17, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2906, top5_acc: 0.7125, loss_cls: 0.1357, loss: 0.1357, grad_norm: 0.5347
+2022-10-24 20:18:24,123 - pyskl - INFO - Epoch [14][720/744]	lr: 2.082e-03, eta: 0:20:11, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2885, top5_acc: 0.7260, loss_cls: 0.1128, loss: 0.1128, grad_norm: 0.4825
+2022-10-24 20:18:29,091 - pyskl - INFO - Epoch [14][740/744]	lr: 2.065e-03, eta: 0:20:06, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2938, top5_acc: 0.7167, loss_cls: 0.1080, loss: 0.1080, grad_norm: 0.4422
+2022-10-24 20:18:58,129 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:18:58,135 - pyskl - INFO - 
+top1_acc	0.4765
+top5_acc	0.7771
+2022-10-24 20:18:58,135 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:18:58,136 - pyskl - INFO - 
+mean_acc	0.4765
+2022-10-24 20:18:58,241 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_13.pth was removed
+2022-10-24 20:18:59,837 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_14.pth.
+2022-10-24 20:18:59,837 - pyskl - INFO - Best top1_acc is 0.4765 at 14 epoch.
+2022-10-24 20:18:59,838 - pyskl - INFO - Epoch(val) [14][32]	top1_acc: 0.4765, top5_acc: 0.7771, mean_class_accuracy: 0.4765
+2022-10-24 20:19:20,130 - pyskl - INFO - Epoch [15][20/744]	lr: 2.045e-03, eta: 0:20:05, time: 1.014, data_time: 0.766, memory: 4591, top1_acc: 0.2573, top5_acc: 0.7000, loss_cls: 0.1052, loss: 0.1052, grad_norm: 0.4558
+2022-10-24 20:19:25,203 - pyskl - INFO - Epoch [15][40/744]	lr: 2.028e-03, eta: 0:20:00, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2906, top5_acc: 0.7115, loss_cls: 0.1099, loss: 0.1099, grad_norm: 0.4470
+2022-10-24 20:19:30,165 - pyskl - INFO - Epoch [15][60/744]	lr: 2.011e-03, eta: 0:19:54, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7177, loss_cls: 0.0916, loss: 0.0916, grad_norm: 0.5896
+2022-10-24 20:19:35,220 - pyskl - INFO - Epoch [15][80/744]	lr: 1.994e-03, eta: 0:19:49, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7302, loss_cls: 0.1190, loss: 0.1190, grad_norm: 0.4701
+2022-10-24 20:19:40,223 - pyskl - INFO - Epoch [15][100/744]	lr: 1.977e-03, eta: 0:19:43, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2927, top5_acc: 0.7146, loss_cls: 0.1161, loss: 0.1161, grad_norm: 0.5905
+2022-10-24 20:19:45,206 - pyskl - INFO - Epoch [15][120/744]	lr: 1.960e-03, eta: 0:19:37, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2813, top5_acc: 0.7083, loss_cls: 0.1160, loss: 0.1160, grad_norm: 0.5854
+2022-10-24 20:19:50,148 - pyskl - INFO - Epoch [15][140/744]	lr: 1.944e-03, eta: 0:19:32, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.2802, top5_acc: 0.7177, loss_cls: 0.1015, loss: 0.1015, grad_norm: 0.4552
+2022-10-24 20:19:55,157 - pyskl - INFO - Epoch [15][160/744]	lr: 1.927e-03, eta: 0:19:26, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3021, top5_acc: 0.7240, loss_cls: 0.1027, loss: 0.1027, grad_norm: 0.5876
+2022-10-24 20:20:00,177 - pyskl - INFO - Epoch [15][180/744]	lr: 1.910e-03, eta: 0:19:21, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7240, loss_cls: 0.1207, loss: 0.1207, grad_norm: 0.9659
+2022-10-24 20:20:05,128 - pyskl - INFO - Epoch [15][200/744]	lr: 1.894e-03, eta: 0:19:15, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2823, top5_acc: 0.7115, loss_cls: 0.1388, loss: 0.1388, grad_norm: 0.5375
+2022-10-24 20:20:10,143 - pyskl - INFO - Epoch [15][220/744]	lr: 1.877e-03, eta: 0:19:09, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7177, loss_cls: 0.1092, loss: 0.1092, grad_norm: 0.4255
+2022-10-24 20:20:15,151 - pyskl - INFO - Epoch [15][240/744]	lr: 1.861e-03, eta: 0:19:04, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2875, top5_acc: 0.7094, loss_cls: 0.1094, loss: 0.1094, grad_norm: 0.5056
+2022-10-24 20:20:20,065 - pyskl - INFO - Epoch [15][260/744]	lr: 1.844e-03, eta: 0:18:58, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.2906, top5_acc: 0.7156, loss_cls: 0.1125, loss: 0.1125, grad_norm: 0.4038
+2022-10-24 20:20:25,076 - pyskl - INFO - Epoch [15][280/744]	lr: 1.828e-03, eta: 0:18:53, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7188, loss_cls: 0.1231, loss: 0.1231, grad_norm: 0.4800
+2022-10-24 20:20:30,059 - pyskl - INFO - Epoch [15][300/744]	lr: 1.812e-03, eta: 0:18:47, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2802, top5_acc: 0.7052, loss_cls: 0.1057, loss: 0.1057, grad_norm: 0.6556
+2022-10-24 20:20:35,089 - pyskl - INFO - Epoch [15][320/744]	lr: 1.796e-03, eta: 0:18:41, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3375, top5_acc: 0.7354, loss_cls: 0.1169, loss: 0.1169, grad_norm: 0.4537
+2022-10-24 20:20:40,068 - pyskl - INFO - Epoch [15][340/744]	lr: 1.779e-03, eta: 0:18:36, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3021, top5_acc: 0.7125, loss_cls: 0.1134, loss: 0.1134, grad_norm: 0.4473
+2022-10-24 20:20:45,086 - pyskl - INFO - Epoch [15][360/744]	lr: 1.763e-03, eta: 0:18:30, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2635, top5_acc: 0.6885, loss_cls: 0.0953, loss: 0.0953, grad_norm: 0.3881
+2022-10-24 20:20:50,083 - pyskl - INFO - Epoch [15][380/744]	lr: 1.747e-03, eta: 0:18:25, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7323, loss_cls: 0.0957, loss: 0.0957, grad_norm: 0.8901
+2022-10-24 20:20:55,137 - pyskl - INFO - Epoch [15][400/744]	lr: 1.731e-03, eta: 0:18:19, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7302, loss_cls: 0.0853, loss: 0.0853, grad_norm: 0.4434
+2022-10-24 20:21:00,138 - pyskl - INFO - Epoch [15][420/744]	lr: 1.715e-03, eta: 0:18:14, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3125, top5_acc: 0.7156, loss_cls: 0.0988, loss: 0.0988, grad_norm: 0.4309
+2022-10-24 20:21:05,187 - pyskl - INFO - Epoch [15][440/744]	lr: 1.699e-03, eta: 0:18:08, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2938, top5_acc: 0.6979, loss_cls: 0.1010, loss: 0.1010, grad_norm: 1.6763
+2022-10-24 20:21:10,233 - pyskl - INFO - Epoch [15][460/744]	lr: 1.683e-03, eta: 0:18:02, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2979, top5_acc: 0.7167, loss_cls: 0.0906, loss: 0.0906, grad_norm: 0.5802
+2022-10-24 20:21:15,207 - pyskl - INFO - Epoch [15][480/744]	lr: 1.668e-03, eta: 0:17:57, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2896, top5_acc: 0.7021, loss_cls: 0.1070, loss: 0.1070, grad_norm: 0.4254
+2022-10-24 20:21:20,140 - pyskl - INFO - Epoch [15][500/744]	lr: 1.652e-03, eta: 0:17:51, time: 0.246, data_time: 0.001, memory: 4591, top1_acc: 0.2958, top5_acc: 0.7115, loss_cls: 0.0977, loss: 0.0977, grad_norm: 0.4196
+2022-10-24 20:21:25,129 - pyskl - INFO - Epoch [15][520/744]	lr: 1.636e-03, eta: 0:17:46, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2583, top5_acc: 0.7021, loss_cls: 0.1172, loss: 0.1172, grad_norm: 0.3980
+2022-10-24 20:21:30,137 - pyskl - INFO - Epoch [15][540/744]	lr: 1.621e-03, eta: 0:17:40, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2948, top5_acc: 0.7021, loss_cls: 0.1153, loss: 0.1153, grad_norm: 0.4599
+2022-10-24 20:21:35,156 - pyskl - INFO - Epoch [15][560/744]	lr: 1.605e-03, eta: 0:17:35, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7010, loss_cls: 0.0887, loss: 0.0887, grad_norm: 0.4895
+2022-10-24 20:21:40,193 - pyskl - INFO - Epoch [15][580/744]	lr: 1.590e-03, eta: 0:17:29, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7031, loss_cls: 0.1065, loss: 0.1065, grad_norm: 0.6229
+2022-10-24 20:21:45,299 - pyskl - INFO - Epoch [15][600/744]	lr: 1.574e-03, eta: 0:17:24, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.2938, top5_acc: 0.7021, loss_cls: 0.1132, loss: 0.1132, grad_norm: 0.8943
+2022-10-24 20:21:50,370 - pyskl - INFO - Epoch [15][620/744]	lr: 1.559e-03, eta: 0:17:18, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2969, top5_acc: 0.7104, loss_cls: 0.0991, loss: 0.0991, grad_norm: 0.4283
+2022-10-24 20:21:55,393 - pyskl - INFO - Epoch [15][640/744]	lr: 1.544e-03, eta: 0:17:13, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3010, top5_acc: 0.7125, loss_cls: 0.1214, loss: 0.1214, grad_norm: 0.5398
+2022-10-24 20:22:00,432 - pyskl - INFO - Epoch [15][660/744]	lr: 1.528e-03, eta: 0:17:07, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7219, loss_cls: 0.0897, loss: 0.0897, grad_norm: 0.4356
+2022-10-24 20:22:05,510 - pyskl - INFO - Epoch [15][680/744]	lr: 1.513e-03, eta: 0:17:02, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3208, top5_acc: 0.7156, loss_cls: 0.0942, loss: 0.0942, grad_norm: 0.3961
+2022-10-24 20:22:10,530 - pyskl - INFO - Epoch [15][700/744]	lr: 1.498e-03, eta: 0:16:56, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3146, top5_acc: 0.7240, loss_cls: 0.1049, loss: 0.1049, grad_norm: 0.3991
+2022-10-24 20:22:15,509 - pyskl - INFO - Epoch [15][720/744]	lr: 1.483e-03, eta: 0:16:50, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2792, top5_acc: 0.7146, loss_cls: 0.1043, loss: 0.1043, grad_norm: 0.4035
+2022-10-24 20:22:20,384 - pyskl - INFO - Epoch [15][740/744]	lr: 1.468e-03, eta: 0:16:45, time: 0.244, data_time: 0.001, memory: 4591, top1_acc: 0.3010, top5_acc: 0.7229, loss_cls: 0.1025, loss: 0.1025, grad_norm: 0.3765
+2022-10-24 20:22:49,404 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:22:49,409 - pyskl - INFO - 
+top1_acc	0.4895
+top5_acc	0.8007
+2022-10-24 20:22:49,409 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:22:49,410 - pyskl - INFO - 
+mean_acc	0.4895
+2022-10-24 20:22:49,513 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_14.pth was removed
+2022-10-24 20:22:51,072 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_15.pth.
+2022-10-24 20:22:51,072 - pyskl - INFO - Best top1_acc is 0.4895 at 15 epoch.
+2022-10-24 20:22:51,073 - pyskl - INFO - Epoch(val) [15][32]	top1_acc: 0.4895, top5_acc: 0.8007, mean_class_accuracy: 0.4895
+2022-10-24 20:23:11,284 - pyskl - INFO - Epoch [16][20/744]	lr: 1.450e-03, eta: 0:16:43, time: 1.010, data_time: 0.765, memory: 4591, top1_acc: 0.3208, top5_acc: 0.7292, loss_cls: 0.0961, loss: 0.0961, grad_norm: 0.4030
+2022-10-24 20:23:16,315 - pyskl - INFO - Epoch [16][40/744]	lr: 1.435e-03, eta: 0:16:37, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2917, top5_acc: 0.7063, loss_cls: 0.0941, loss: 0.0941, grad_norm: 0.3752
+2022-10-24 20:23:21,232 - pyskl - INFO - Epoch [16][60/744]	lr: 1.421e-03, eta: 0:16:32, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.2802, top5_acc: 0.7031, loss_cls: 0.0891, loss: 0.0891, grad_norm: 0.5020
+2022-10-24 20:23:26,226 - pyskl - INFO - Epoch [16][80/744]	lr: 1.406e-03, eta: 0:16:26, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3094, top5_acc: 0.7229, loss_cls: 0.1171, loss: 0.1171, grad_norm: 0.4432
+2022-10-24 20:23:31,268 - pyskl - INFO - Epoch [16][100/744]	lr: 1.391e-03, eta: 0:16:21, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7271, loss_cls: 0.0981, loss: 0.0981, grad_norm: 0.5611
+2022-10-24 20:23:36,364 - pyskl - INFO - Epoch [16][120/744]	lr: 1.377e-03, eta: 0:16:15, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7229, loss_cls: 0.1111, loss: 0.1111, grad_norm: 0.4169
+2022-10-24 20:23:41,472 - pyskl - INFO - Epoch [16][140/744]	lr: 1.362e-03, eta: 0:16:10, time: 0.256, data_time: 0.001, memory: 4591, top1_acc: 0.3188, top5_acc: 0.7271, loss_cls: 0.1135, loss: 0.1135, grad_norm: 0.4232
+2022-10-24 20:23:46,517 - pyskl - INFO - Epoch [16][160/744]	lr: 1.348e-03, eta: 0:16:04, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3094, top5_acc: 0.7156, loss_cls: 0.0960, loss: 0.0960, grad_norm: 0.3598
+2022-10-24 20:23:51,538 - pyskl - INFO - Epoch [16][180/744]	lr: 1.333e-03, eta: 0:15:59, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2990, top5_acc: 0.7073, loss_cls: 0.0850, loss: 0.0850, grad_norm: 0.3306
+2022-10-24 20:23:56,483 - pyskl - INFO - Epoch [16][200/744]	lr: 1.319e-03, eta: 0:15:53, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7229, loss_cls: 0.1005, loss: 0.1005, grad_norm: 0.3770
+2022-10-24 20:24:01,535 - pyskl - INFO - Epoch [16][220/744]	lr: 1.305e-03, eta: 0:15:47, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3219, top5_acc: 0.7188, loss_cls: 0.0742, loss: 0.0742, grad_norm: 0.3134
+2022-10-24 20:24:06,564 - pyskl - INFO - Epoch [16][240/744]	lr: 1.291e-03, eta: 0:15:42, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7219, loss_cls: 0.0916, loss: 0.0916, grad_norm: 0.3627
+2022-10-24 20:24:11,612 - pyskl - INFO - Epoch [16][260/744]	lr: 1.277e-03, eta: 0:15:36, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3344, top5_acc: 0.7271, loss_cls: 0.1108, loss: 0.1108, grad_norm: 0.5733
+2022-10-24 20:24:16,648 - pyskl - INFO - Epoch [16][280/744]	lr: 1.262e-03, eta: 0:15:31, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3000, top5_acc: 0.7281, loss_cls: 0.1100, loss: 0.1100, grad_norm: 0.5209
+2022-10-24 20:24:21,709 - pyskl - INFO - Epoch [16][300/744]	lr: 1.248e-03, eta: 0:15:25, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.2958, top5_acc: 0.7083, loss_cls: 0.1116, loss: 0.1116, grad_norm: 0.4439
+2022-10-24 20:24:26,741 - pyskl - INFO - Epoch [16][320/744]	lr: 1.235e-03, eta: 0:15:20, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3188, top5_acc: 0.7115, loss_cls: 0.0904, loss: 0.0904, grad_norm: 0.3773
+2022-10-24 20:24:31,703 - pyskl - INFO - Epoch [16][340/744]	lr: 1.221e-03, eta: 0:15:14, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3323, top5_acc: 0.7313, loss_cls: 0.0834, loss: 0.0834, grad_norm: 0.3461
+2022-10-24 20:24:36,735 - pyskl - INFO - Epoch [16][360/744]	lr: 1.207e-03, eta: 0:15:09, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7104, loss_cls: 0.0888, loss: 0.0888, grad_norm: 0.3650
+2022-10-24 20:24:41,762 - pyskl - INFO - Epoch [16][380/744]	lr: 1.193e-03, eta: 0:15:03, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3177, top5_acc: 0.7219, loss_cls: 0.0763, loss: 0.0763, grad_norm: 0.3376
+2022-10-24 20:24:46,734 - pyskl - INFO - Epoch [16][400/744]	lr: 1.180e-03, eta: 0:14:58, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2979, top5_acc: 0.7198, loss_cls: 0.0727, loss: 0.0727, grad_norm: 0.3412
+2022-10-24 20:24:51,719 - pyskl - INFO - Epoch [16][420/744]	lr: 1.166e-03, eta: 0:14:52, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3021, top5_acc: 0.7115, loss_cls: 0.1048, loss: 0.1048, grad_norm: 0.3894
+2022-10-24 20:24:56,719 - pyskl - INFO - Epoch [16][440/744]	lr: 1.152e-03, eta: 0:14:47, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7313, loss_cls: 0.0980, loss: 0.0980, grad_norm: 0.4257
+2022-10-24 20:25:01,754 - pyskl - INFO - Epoch [16][460/744]	lr: 1.139e-03, eta: 0:14:41, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7135, loss_cls: 0.0950, loss: 0.0950, grad_norm: 0.4217
+2022-10-24 20:25:06,766 - pyskl - INFO - Epoch [16][480/744]	lr: 1.126e-03, eta: 0:14:36, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2917, top5_acc: 0.7125, loss_cls: 0.0868, loss: 0.0868, grad_norm: 0.3352
+2022-10-24 20:25:11,789 - pyskl - INFO - Epoch [16][500/744]	lr: 1.112e-03, eta: 0:14:30, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2635, top5_acc: 0.6917, loss_cls: 0.0819, loss: 0.0819, grad_norm: 0.3679
+2022-10-24 20:25:16,751 - pyskl - INFO - Epoch [16][520/744]	lr: 1.099e-03, eta: 0:14:25, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.2875, top5_acc: 0.7125, loss_cls: 0.0890, loss: 0.0890, grad_norm: 0.4773
+2022-10-24 20:25:21,793 - pyskl - INFO - Epoch [16][540/744]	lr: 1.086e-03, eta: 0:14:19, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7260, loss_cls: 0.0885, loss: 0.0885, grad_norm: 0.3921
+2022-10-24 20:25:26,843 - pyskl - INFO - Epoch [16][560/744]	lr: 1.073e-03, eta: 0:14:14, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7240, loss_cls: 0.0923, loss: 0.0923, grad_norm: 0.3663
+2022-10-24 20:25:31,818 - pyskl - INFO - Epoch [16][580/744]	lr: 1.060e-03, eta: 0:14:08, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2865, top5_acc: 0.7146, loss_cls: 0.0771, loss: 0.0771, grad_norm: 0.3942
+2022-10-24 20:25:36,861 - pyskl - INFO - Epoch [16][600/744]	lr: 1.047e-03, eta: 0:14:03, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3208, top5_acc: 0.7396, loss_cls: 0.0836, loss: 0.0836, grad_norm: 0.4708
+2022-10-24 20:25:41,903 - pyskl - INFO - Epoch [16][620/744]	lr: 1.034e-03, eta: 0:13:57, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3000, top5_acc: 0.7344, loss_cls: 0.0902, loss: 0.0902, grad_norm: 0.4046
+2022-10-24 20:25:46,891 - pyskl - INFO - Epoch [16][640/744]	lr: 1.021e-03, eta: 0:13:52, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2750, top5_acc: 0.7052, loss_cls: 0.0804, loss: 0.0804, grad_norm: 0.3384
+2022-10-24 20:25:51,862 - pyskl - INFO - Epoch [16][660/744]	lr: 1.008e-03, eta: 0:13:46, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3406, top5_acc: 0.7271, loss_cls: 0.0745, loss: 0.0745, grad_norm: 0.3671
+2022-10-24 20:25:56,907 - pyskl - INFO - Epoch [16][680/744]	lr: 9.956e-04, eta: 0:13:41, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7188, loss_cls: 0.0631, loss: 0.0631, grad_norm: 0.3019
+2022-10-24 20:26:01,963 - pyskl - INFO - Epoch [16][700/744]	lr: 9.830e-04, eta: 0:13:35, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3229, top5_acc: 0.7135, loss_cls: 0.0856, loss: 0.0856, grad_norm: 0.5020
+2022-10-24 20:26:06,917 - pyskl - INFO - Epoch [16][720/744]	lr: 9.705e-04, eta: 0:13:30, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7271, loss_cls: 0.0876, loss: 0.0876, grad_norm: 0.5038
+2022-10-24 20:26:11,866 - pyskl - INFO - Epoch [16][740/744]	lr: 9.580e-04, eta: 0:13:24, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7219, loss_cls: 0.0963, loss: 0.0963, grad_norm: 0.4091
+2022-10-24 20:26:40,745 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:26:40,751 - pyskl - INFO - 
+top1_acc	0.5144
+top5_acc	0.8098
+2022-10-24 20:26:40,751 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:26:40,752 - pyskl - INFO - 
+mean_acc	0.5144
+2022-10-24 20:26:40,857 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_15.pth was removed
+2022-10-24 20:26:42,423 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_16.pth.
+2022-10-24 20:26:42,423 - pyskl - INFO - Best top1_acc is 0.5144 at 16 epoch.
+2022-10-24 20:26:42,424 - pyskl - INFO - Epoch(val) [16][32]	top1_acc: 0.5144, top5_acc: 0.8098, mean_class_accuracy: 0.5144
+2022-10-24 20:27:02,739 - pyskl - INFO - Epoch [17][20/744]	lr: 9.432e-04, eta: 0:13:21, time: 1.014, data_time: 0.768, memory: 4591, top1_acc: 0.3031, top5_acc: 0.7146, loss_cls: 0.0853, loss: 0.0853, grad_norm: 0.3609
+2022-10-24 20:27:07,738 - pyskl - INFO - Epoch [17][40/744]	lr: 9.309e-04, eta: 0:13:15, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3344, top5_acc: 0.7344, loss_cls: 0.0702, loss: 0.0702, grad_norm: 0.5752
+2022-10-24 20:27:12,814 - pyskl - INFO - Epoch [17][60/744]	lr: 9.186e-04, eta: 0:13:10, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2885, top5_acc: 0.7031, loss_cls: 0.0789, loss: 0.0789, grad_norm: 0.3628
+2022-10-24 20:27:17,816 - pyskl - INFO - Epoch [17][80/744]	lr: 9.065e-04, eta: 0:13:04, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.2875, top5_acc: 0.7135, loss_cls: 0.0858, loss: 0.0858, grad_norm: 0.5670
+2022-10-24 20:27:22,843 - pyskl - INFO - Epoch [17][100/744]	lr: 8.944e-04, eta: 0:12:59, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3115, top5_acc: 0.7115, loss_cls: 0.0887, loss: 0.0887, grad_norm: 0.4226
+2022-10-24 20:27:27,942 - pyskl - INFO - Epoch [17][120/744]	lr: 8.824e-04, eta: 0:12:53, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3438, top5_acc: 0.7365, loss_cls: 0.0792, loss: 0.0792, grad_norm: 0.3402
+2022-10-24 20:27:32,975 - pyskl - INFO - Epoch [17][140/744]	lr: 8.704e-04, eta: 0:12:48, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7219, loss_cls: 0.0862, loss: 0.0862, grad_norm: 0.3727
+2022-10-24 20:27:38,014 - pyskl - INFO - Epoch [17][160/744]	lr: 8.586e-04, eta: 0:12:42, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3146, top5_acc: 0.7323, loss_cls: 0.0660, loss: 0.0660, grad_norm: 0.9148
+2022-10-24 20:27:43,008 - pyskl - INFO - Epoch [17][180/744]	lr: 8.468e-04, eta: 0:12:37, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2958, top5_acc: 0.7167, loss_cls: 0.0811, loss: 0.0811, grad_norm: 0.4046
+2022-10-24 20:27:47,986 - pyskl - INFO - Epoch [17][200/744]	lr: 8.350e-04, eta: 0:12:31, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7281, loss_cls: 0.0794, loss: 0.0794, grad_norm: 0.3371
+2022-10-24 20:27:52,970 - pyskl - INFO - Epoch [17][220/744]	lr: 8.234e-04, eta: 0:12:26, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3031, top5_acc: 0.7208, loss_cls: 0.0747, loss: 0.0747, grad_norm: 0.3266
+2022-10-24 20:27:57,995 - pyskl - INFO - Epoch [17][240/744]	lr: 8.118e-04, eta: 0:12:20, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3021, top5_acc: 0.7063, loss_cls: 0.0834, loss: 0.0834, grad_norm: 0.3593
+2022-10-24 20:28:03,025 - pyskl - INFO - Epoch [17][260/744]	lr: 8.003e-04, eta: 0:12:15, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3354, top5_acc: 0.7333, loss_cls: 0.0987, loss: 0.0987, grad_norm: 0.3972
+2022-10-24 20:28:08,070 - pyskl - INFO - Epoch [17][280/744]	lr: 7.889e-04, eta: 0:12:09, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3177, top5_acc: 0.7240, loss_cls: 0.0980, loss: 0.0980, grad_norm: 0.4253
+2022-10-24 20:28:13,135 - pyskl - INFO - Epoch [17][300/744]	lr: 7.776e-04, eta: 0:12:04, time: 0.254, data_time: 0.003, memory: 4591, top1_acc: 0.3281, top5_acc: 0.7260, loss_cls: 0.0772, loss: 0.0772, grad_norm: 0.4749
+2022-10-24 20:28:18,167 - pyskl - INFO - Epoch [17][320/744]	lr: 7.663e-04, eta: 0:11:58, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7219, loss_cls: 0.0849, loss: 0.0849, grad_norm: 0.3844
+2022-10-24 20:28:23,189 - pyskl - INFO - Epoch [17][340/744]	lr: 7.551e-04, eta: 0:11:53, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3354, top5_acc: 0.7250, loss_cls: 0.0750, loss: 0.0750, grad_norm: 0.3533
+2022-10-24 20:28:28,182 - pyskl - INFO - Epoch [17][360/744]	lr: 7.440e-04, eta: 0:11:47, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7344, loss_cls: 0.0667, loss: 0.0667, grad_norm: 0.3302
+2022-10-24 20:28:33,295 - pyskl - INFO - Epoch [17][380/744]	lr: 7.329e-04, eta: 0:11:42, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.3125, top5_acc: 0.7281, loss_cls: 0.0893, loss: 0.0893, grad_norm: 0.3725
+2022-10-24 20:28:38,385 - pyskl - INFO - Epoch [17][400/744]	lr: 7.220e-04, eta: 0:11:36, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7271, loss_cls: 0.0965, loss: 0.0965, grad_norm: 0.3651
+2022-10-24 20:28:43,378 - pyskl - INFO - Epoch [17][420/744]	lr: 7.111e-04, eta: 0:11:31, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2938, top5_acc: 0.7229, loss_cls: 0.1045, loss: 0.1045, grad_norm: 0.4633
+2022-10-24 20:28:48,391 - pyskl - INFO - Epoch [17][440/744]	lr: 7.003e-04, eta: 0:11:25, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.2854, top5_acc: 0.7104, loss_cls: 0.0775, loss: 0.0775, grad_norm: 0.3435
+2022-10-24 20:28:53,331 - pyskl - INFO - Epoch [17][460/744]	lr: 6.895e-04, eta: 0:11:20, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.2885, top5_acc: 0.7052, loss_cls: 0.0811, loss: 0.0811, grad_norm: 0.4150
+2022-10-24 20:28:58,401 - pyskl - INFO - Epoch [17][480/744]	lr: 6.789e-04, eta: 0:11:14, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3115, top5_acc: 0.7219, loss_cls: 0.0735, loss: 0.0735, grad_norm: 0.4236
+2022-10-24 20:29:03,390 - pyskl - INFO - Epoch [17][500/744]	lr: 6.683e-04, eta: 0:11:09, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7250, loss_cls: 0.0884, loss: 0.0884, grad_norm: 0.3703
+2022-10-24 20:29:08,416 - pyskl - INFO - Epoch [17][520/744]	lr: 6.578e-04, eta: 0:11:03, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7396, loss_cls: 0.0780, loss: 0.0780, grad_norm: 0.3773
+2022-10-24 20:29:13,473 - pyskl - INFO - Epoch [17][540/744]	lr: 6.474e-04, eta: 0:10:58, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.2771, top5_acc: 0.7042, loss_cls: 0.0867, loss: 0.0867, grad_norm: 0.4004
+2022-10-24 20:29:18,459 - pyskl - INFO - Epoch [17][560/744]	lr: 6.370e-04, eta: 0:10:52, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3031, top5_acc: 0.7000, loss_cls: 0.0688, loss: 0.0688, grad_norm: 0.3423
+2022-10-24 20:29:23,493 - pyskl - INFO - Epoch [17][580/744]	lr: 6.267e-04, eta: 0:10:47, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7135, loss_cls: 0.0690, loss: 0.0690, grad_norm: 0.3175
+2022-10-24 20:29:28,557 - pyskl - INFO - Epoch [17][600/744]	lr: 6.165e-04, eta: 0:10:42, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7073, loss_cls: 0.0671, loss: 0.0671, grad_norm: 0.3559
+2022-10-24 20:29:33,580 - pyskl - INFO - Epoch [17][620/744]	lr: 6.064e-04, eta: 0:10:36, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.2771, top5_acc: 0.7104, loss_cls: 0.0603, loss: 0.0603, grad_norm: 0.2834
+2022-10-24 20:29:38,621 - pyskl - INFO - Epoch [17][640/744]	lr: 5.964e-04, eta: 0:10:31, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3042, top5_acc: 0.7073, loss_cls: 0.0787, loss: 0.0787, grad_norm: 0.3584
+2022-10-24 20:29:43,590 - pyskl - INFO - Epoch [17][660/744]	lr: 5.864e-04, eta: 0:10:25, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7198, loss_cls: 0.0685, loss: 0.0685, grad_norm: 0.2996
+2022-10-24 20:29:48,668 - pyskl - INFO - Epoch [17][680/744]	lr: 5.765e-04, eta: 0:10:20, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7354, loss_cls: 0.0891, loss: 0.0891, grad_norm: 0.4983
+2022-10-24 20:29:53,713 - pyskl - INFO - Epoch [17][700/744]	lr: 5.667e-04, eta: 0:10:14, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7250, loss_cls: 0.0830, loss: 0.0830, grad_norm: 0.3635
+2022-10-24 20:29:58,647 - pyskl - INFO - Epoch [17][720/744]	lr: 5.570e-04, eta: 0:10:09, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7094, loss_cls: 0.0665, loss: 0.0665, grad_norm: 0.4414
+2022-10-24 20:30:03,595 - pyskl - INFO - Epoch [17][740/744]	lr: 5.474e-04, eta: 0:10:03, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2948, top5_acc: 0.7125, loss_cls: 0.0717, loss: 0.0717, grad_norm: 0.3537
+2022-10-24 20:30:32,731 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:30:32,737 - pyskl - INFO - 
+top1_acc	0.5209
+top5_acc	0.8065
+2022-10-24 20:30:32,737 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:30:32,738 - pyskl - INFO - 
+mean_acc	0.5209
+2022-10-24 20:30:32,844 - pyskl - INFO - The previous best checkpoint /home/yl/pyskl/work_dirs/actionclip/mydebug1/best_top1_acc_epoch_16.pth was removed
+2022-10-24 20:30:34,444 - pyskl - INFO - Now best checkpoint is saved as best_top1_acc_epoch_17.pth.
+2022-10-24 20:30:34,444 - pyskl - INFO - Best top1_acc is 0.5209 at 17 epoch.
+2022-10-24 20:30:34,445 - pyskl - INFO - Epoch(val) [17][32]	top1_acc: 0.5209, top5_acc: 0.8065, mean_class_accuracy: 0.5209
+2022-10-24 20:30:54,533 - pyskl - INFO - Epoch [18][20/744]	lr: 5.359e-04, eta: 0:09:59, time: 1.004, data_time: 0.756, memory: 4591, top1_acc: 0.3271, top5_acc: 0.7219, loss_cls: 0.0737, loss: 0.0737, grad_norm: 0.3523
+2022-10-24 20:30:59,520 - pyskl - INFO - Epoch [18][40/744]	lr: 5.264e-04, eta: 0:09:54, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3219, top5_acc: 0.7323, loss_cls: 0.0846, loss: 0.0846, grad_norm: 0.3525
+2022-10-24 20:31:04,584 - pyskl - INFO - Epoch [18][60/744]	lr: 5.170e-04, eta: 0:09:48, time: 0.254, data_time: 0.002, memory: 4591, top1_acc: 0.3219, top5_acc: 0.7198, loss_cls: 0.0815, loss: 0.0815, grad_norm: 0.3357
+2022-10-24 20:31:09,661 - pyskl - INFO - Epoch [18][80/744]	lr: 5.077e-04, eta: 0:09:43, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3042, top5_acc: 0.7167, loss_cls: 0.0889, loss: 0.0889, grad_norm: 0.3651
+2022-10-24 20:31:14,680 - pyskl - INFO - Epoch [18][100/744]	lr: 4.985e-04, eta: 0:09:37, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3281, top5_acc: 0.7167, loss_cls: 0.0669, loss: 0.0669, grad_norm: 0.4308
+2022-10-24 20:31:19,773 - pyskl - INFO - Epoch [18][120/744]	lr: 4.893e-04, eta: 0:09:32, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3333, top5_acc: 0.7365, loss_cls: 0.0961, loss: 0.0961, grad_norm: 0.3874
+2022-10-24 20:31:24,867 - pyskl - INFO - Epoch [18][140/744]	lr: 4.803e-04, eta: 0:09:26, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7313, loss_cls: 0.0683, loss: 0.0683, grad_norm: 0.2949
+2022-10-24 20:31:29,951 - pyskl - INFO - Epoch [18][160/744]	lr: 4.713e-04, eta: 0:09:21, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7125, loss_cls: 0.0737, loss: 0.0737, grad_norm: 0.3532
+2022-10-24 20:31:34,949 - pyskl - INFO - Epoch [18][180/744]	lr: 4.624e-04, eta: 0:09:15, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7188, loss_cls: 0.0651, loss: 0.0651, grad_norm: 0.5570
+2022-10-24 20:31:40,063 - pyskl - INFO - Epoch [18][200/744]	lr: 4.536e-04, eta: 0:09:10, time: 0.256, data_time: 0.001, memory: 4591, top1_acc: 0.3281, top5_acc: 0.7177, loss_cls: 0.0731, loss: 0.0731, grad_norm: 0.3748
+2022-10-24 20:31:45,080 - pyskl - INFO - Epoch [18][220/744]	lr: 4.448e-04, eta: 0:09:04, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7073, loss_cls: 0.0733, loss: 0.0733, grad_norm: 0.3233
+2022-10-24 20:31:50,155 - pyskl - INFO - Epoch [18][240/744]	lr: 4.361e-04, eta: 0:08:59, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3208, top5_acc: 0.7323, loss_cls: 0.0764, loss: 0.0764, grad_norm: 0.3683
+2022-10-24 20:31:55,226 - pyskl - INFO - Epoch [18][260/744]	lr: 4.276e-04, eta: 0:08:53, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3010, top5_acc: 0.7229, loss_cls: 0.0819, loss: 0.0819, grad_norm: 0.3341
+2022-10-24 20:32:00,238 - pyskl - INFO - Epoch [18][280/744]	lr: 4.191e-04, eta: 0:08:48, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7208, loss_cls: 0.0659, loss: 0.0659, grad_norm: 0.3693
+2022-10-24 20:32:05,246 - pyskl - INFO - Epoch [18][300/744]	lr: 4.106e-04, eta: 0:08:42, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7323, loss_cls: 0.0765, loss: 0.0765, grad_norm: 0.3444
+2022-10-24 20:32:10,288 - pyskl - INFO - Epoch [18][320/744]	lr: 4.023e-04, eta: 0:08:37, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7313, loss_cls: 0.0774, loss: 0.0774, grad_norm: 0.3497
+2022-10-24 20:32:15,279 - pyskl - INFO - Epoch [18][340/744]	lr: 3.940e-04, eta: 0:08:31, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3333, top5_acc: 0.7323, loss_cls: 0.0632, loss: 0.0632, grad_norm: 0.2847
+2022-10-24 20:32:20,297 - pyskl - INFO - Epoch [18][360/744]	lr: 3.859e-04, eta: 0:08:26, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3438, top5_acc: 0.7344, loss_cls: 0.0800, loss: 0.0800, grad_norm: 0.4376
+2022-10-24 20:32:25,299 - pyskl - INFO - Epoch [18][380/744]	lr: 3.778e-04, eta: 0:08:21, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7250, loss_cls: 0.0721, loss: 0.0721, grad_norm: 0.2926
+2022-10-24 20:32:30,402 - pyskl - INFO - Epoch [18][400/744]	lr: 3.698e-04, eta: 0:08:15, time: 0.256, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7188, loss_cls: 0.0805, loss: 0.0805, grad_norm: 0.3568
+2022-10-24 20:32:35,431 - pyskl - INFO - Epoch [18][420/744]	lr: 3.618e-04, eta: 0:08:10, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3229, top5_acc: 0.7333, loss_cls: 0.0664, loss: 0.0664, grad_norm: 0.2998
+2022-10-24 20:32:40,462 - pyskl - INFO - Epoch [18][440/744]	lr: 3.540e-04, eta: 0:08:04, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3188, top5_acc: 0.7198, loss_cls: 0.0800, loss: 0.0800, grad_norm: 0.3595
+2022-10-24 20:32:45,489 - pyskl - INFO - Epoch [18][460/744]	lr: 3.462e-04, eta: 0:07:59, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3292, top5_acc: 0.7281, loss_cls: 0.0733, loss: 0.0733, grad_norm: 0.3763
+2022-10-24 20:32:50,406 - pyskl - INFO - Epoch [18][480/744]	lr: 3.386e-04, eta: 0:07:53, time: 0.246, data_time: 0.002, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7188, loss_cls: 0.0762, loss: 0.0762, grad_norm: 0.4530
+2022-10-24 20:32:55,504 - pyskl - INFO - Epoch [18][500/744]	lr: 3.310e-04, eta: 0:07:48, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3073, top5_acc: 0.7073, loss_cls: 0.0614, loss: 0.0614, grad_norm: 0.2861
+2022-10-24 20:33:00,498 - pyskl - INFO - Epoch [18][520/744]	lr: 3.235e-04, eta: 0:07:42, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3344, top5_acc: 0.7365, loss_cls: 0.0687, loss: 0.0687, grad_norm: 0.4031
+2022-10-24 20:33:05,482 - pyskl - INFO - Epoch [18][540/744]	lr: 3.160e-04, eta: 0:07:37, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3146, top5_acc: 0.7396, loss_cls: 0.0647, loss: 0.0647, grad_norm: 0.3025
+2022-10-24 20:33:10,595 - pyskl - INFO - Epoch [18][560/744]	lr: 3.087e-04, eta: 0:07:31, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.3063, top5_acc: 0.7302, loss_cls: 0.0790, loss: 0.0790, grad_norm: 0.3522
+2022-10-24 20:33:15,689 - pyskl - INFO - Epoch [18][580/744]	lr: 3.014e-04, eta: 0:07:26, time: 0.256, data_time: 0.002, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7177, loss_cls: 0.0653, loss: 0.0653, grad_norm: 0.3187
+2022-10-24 20:33:20,714 - pyskl - INFO - Epoch [18][600/744]	lr: 2.942e-04, eta: 0:07:21, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3229, top5_acc: 0.7219, loss_cls: 0.0527, loss: 0.0527, grad_norm: 0.3068
+2022-10-24 20:33:25,756 - pyskl - INFO - Epoch [18][620/744]	lr: 2.871e-04, eta: 0:07:15, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3042, top5_acc: 0.7115, loss_cls: 0.0713, loss: 0.0713, grad_norm: 0.3231
+2022-10-24 20:33:30,738 - pyskl - INFO - Epoch [18][640/744]	lr: 2.801e-04, eta: 0:07:10, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7156, loss_cls: 0.0640, loss: 0.0640, grad_norm: 0.4792
+2022-10-24 20:33:35,831 - pyskl - INFO - Epoch [18][660/744]	lr: 2.732e-04, eta: 0:07:04, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7281, loss_cls: 0.0661, loss: 0.0661, grad_norm: 0.3205
+2022-10-24 20:33:40,859 - pyskl - INFO - Epoch [18][680/744]	lr: 2.664e-04, eta: 0:06:59, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3344, top5_acc: 0.7271, loss_cls: 0.0892, loss: 0.0892, grad_norm: 0.3744
+2022-10-24 20:33:45,919 - pyskl - INFO - Epoch [18][700/744]	lr: 2.596e-04, eta: 0:06:53, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3385, top5_acc: 0.7219, loss_cls: 0.0726, loss: 0.0726, grad_norm: 0.7801
+2022-10-24 20:33:50,883 - pyskl - INFO - Epoch [18][720/744]	lr: 2.529e-04, eta: 0:06:48, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7240, loss_cls: 0.0650, loss: 0.0650, grad_norm: 0.3515
+2022-10-24 20:33:55,831 - pyskl - INFO - Epoch [18][740/744]	lr: 2.464e-04, eta: 0:06:42, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.3260, top5_acc: 0.7219, loss_cls: 0.0598, loss: 0.0598, grad_norm: 0.2948
+2022-10-24 20:34:24,975 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:34:24,980 - pyskl - INFO - 
+top1_acc	0.5078
+top5_acc	0.8026
+2022-10-24 20:34:24,980 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:34:24,982 - pyskl - INFO - 
+mean_acc	0.5078
+2022-10-24 20:34:24,982 - pyskl - INFO - Epoch(val) [18][32]	top1_acc: 0.5078, top5_acc: 0.8026, mean_class_accuracy: 0.5078
+2022-10-24 20:34:45,870 - pyskl - INFO - Epoch [19][20/744]	lr: 2.386e-04, eta: 0:06:37, time: 1.044, data_time: 0.776, memory: 4591, top1_acc: 0.3052, top5_acc: 0.7063, loss_cls: 0.0630, loss: 0.0630, grad_norm: 0.3093
+2022-10-24 20:34:50,885 - pyskl - INFO - Epoch [19][40/744]	lr: 2.322e-04, eta: 0:06:32, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7063, loss_cls: 0.0611, loss: 0.0611, grad_norm: 0.2907
+2022-10-24 20:34:55,860 - pyskl - INFO - Epoch [19][60/744]	lr: 2.258e-04, eta: 0:06:27, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2958, top5_acc: 0.7156, loss_cls: 0.0703, loss: 0.0703, grad_norm: 0.3090
+2022-10-24 20:35:00,891 - pyskl - INFO - Epoch [19][80/744]	lr: 2.196e-04, eta: 0:06:21, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.2948, top5_acc: 0.7083, loss_cls: 0.0608, loss: 0.0608, grad_norm: 0.3079
+2022-10-24 20:35:05,908 - pyskl - INFO - Epoch [19][100/744]	lr: 2.135e-04, eta: 0:06:16, time: 0.250, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7271, loss_cls: 0.0686, loss: 0.0686, grad_norm: 0.3133
+2022-10-24 20:35:10,944 - pyskl - INFO - Epoch [19][120/744]	lr: 2.074e-04, eta: 0:06:10, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3354, top5_acc: 0.7240, loss_cls: 0.0733, loss: 0.0733, grad_norm: 0.3605
+2022-10-24 20:35:15,915 - pyskl - INFO - Epoch [19][140/744]	lr: 2.014e-04, eta: 0:06:05, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3406, top5_acc: 0.7281, loss_cls: 0.0730, loss: 0.0730, grad_norm: 0.3554
+2022-10-24 20:35:20,955 - pyskl - INFO - Epoch [19][160/744]	lr: 1.955e-04, eta: 0:05:59, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3417, top5_acc: 0.7385, loss_cls: 0.0670, loss: 0.0670, grad_norm: 0.3332
+2022-10-24 20:35:25,985 - pyskl - INFO - Epoch [19][180/744]	lr: 1.897e-04, eta: 0:05:54, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7167, loss_cls: 0.0698, loss: 0.0698, grad_norm: 0.3296
+2022-10-24 20:35:31,127 - pyskl - INFO - Epoch [19][200/744]	lr: 1.840e-04, eta: 0:05:48, time: 0.258, data_time: 0.002, memory: 4591, top1_acc: 0.3333, top5_acc: 0.7104, loss_cls: 0.0666, loss: 0.0666, grad_norm: 0.3210
+2022-10-24 20:35:36,235 - pyskl - INFO - Epoch [19][220/744]	lr: 1.784e-04, eta: 0:05:43, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.3292, top5_acc: 0.7271, loss_cls: 0.0715, loss: 0.0715, grad_norm: 0.3037
+2022-10-24 20:35:41,339 - pyskl - INFO - Epoch [19][240/744]	lr: 1.728e-04, eta: 0:05:37, time: 0.255, data_time: 0.002, memory: 4591, top1_acc: 0.3313, top5_acc: 0.7292, loss_cls: 0.0784, loss: 0.0784, grad_norm: 0.3501
+2022-10-24 20:35:46,347 - pyskl - INFO - Epoch [19][260/744]	lr: 1.674e-04, eta: 0:05:32, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3177, top5_acc: 0.7177, loss_cls: 0.0715, loss: 0.0715, grad_norm: 0.3158
+2022-10-24 20:35:51,403 - pyskl - INFO - Epoch [19][280/744]	lr: 1.620e-04, eta: 0:05:27, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3375, top5_acc: 0.7417, loss_cls: 0.0648, loss: 0.0648, grad_norm: 0.3124
+2022-10-24 20:35:56,588 - pyskl - INFO - Epoch [19][300/744]	lr: 1.567e-04, eta: 0:05:21, time: 0.258, data_time: 0.001, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7177, loss_cls: 0.0597, loss: 0.0597, grad_norm: 0.2747
+2022-10-24 20:36:01,622 - pyskl - INFO - Epoch [19][320/744]	lr: 1.515e-04, eta: 0:05:16, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3469, top5_acc: 0.7302, loss_cls: 0.0842, loss: 0.0842, grad_norm: 0.3172
+2022-10-24 20:36:06,640 - pyskl - INFO - Epoch [19][340/744]	lr: 1.464e-04, eta: 0:05:10, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3302, top5_acc: 0.7302, loss_cls: 0.0731, loss: 0.0731, grad_norm: 0.3109
+2022-10-24 20:36:11,702 - pyskl - INFO - Epoch [19][360/744]	lr: 1.414e-04, eta: 0:05:05, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3271, top5_acc: 0.7208, loss_cls: 0.0569, loss: 0.0569, grad_norm: 0.2874
+2022-10-24 20:36:16,798 - pyskl - INFO - Epoch [19][380/744]	lr: 1.364e-04, eta: 0:04:59, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3271, top5_acc: 0.7177, loss_cls: 0.0629, loss: 0.0629, grad_norm: 0.3532
+2022-10-24 20:36:21,815 - pyskl - INFO - Epoch [19][400/744]	lr: 1.316e-04, eta: 0:04:54, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.2948, top5_acc: 0.7042, loss_cls: 0.0786, loss: 0.0786, grad_norm: 0.3049
+2022-10-24 20:36:26,842 - pyskl - INFO - Epoch [19][420/744]	lr: 1.268e-04, eta: 0:04:48, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7333, loss_cls: 0.0677, loss: 0.0677, grad_norm: 0.2965
+2022-10-24 20:36:31,920 - pyskl - INFO - Epoch [19][440/744]	lr: 1.221e-04, eta: 0:04:43, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.2844, top5_acc: 0.7271, loss_cls: 0.0579, loss: 0.0579, grad_norm: 0.2813
+2022-10-24 20:36:37,009 - pyskl - INFO - Epoch [19][460/744]	lr: 1.175e-04, eta: 0:04:38, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3375, top5_acc: 0.7208, loss_cls: 0.0703, loss: 0.0703, grad_norm: 0.3241
+2022-10-24 20:36:42,054 - pyskl - INFO - Epoch [19][480/744]	lr: 1.130e-04, eta: 0:04:32, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3344, top5_acc: 0.7188, loss_cls: 0.0612, loss: 0.0612, grad_norm: 0.2918
+2022-10-24 20:36:47,104 - pyskl - INFO - Epoch [19][500/744]	lr: 1.086e-04, eta: 0:04:27, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3177, top5_acc: 0.7240, loss_cls: 0.0835, loss: 0.0835, grad_norm: 0.3399
+2022-10-24 20:36:52,211 - pyskl - INFO - Epoch [19][520/744]	lr: 1.043e-04, eta: 0:04:21, time: 0.255, data_time: 0.001, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7229, loss_cls: 0.0738, loss: 0.0738, grad_norm: 0.3253
+2022-10-24 20:36:57,255 - pyskl - INFO - Epoch [19][540/744]	lr: 1.000e-04, eta: 0:04:16, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3240, top5_acc: 0.7135, loss_cls: 0.0635, loss: 0.0635, grad_norm: 0.3040
+2022-10-24 20:37:02,277 - pyskl - INFO - Epoch [19][560/744]	lr: 9.587e-05, eta: 0:04:10, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3417, top5_acc: 0.7406, loss_cls: 0.0588, loss: 0.0588, grad_norm: 0.2890
+2022-10-24 20:37:07,358 - pyskl - INFO - Epoch [19][580/744]	lr: 9.180e-05, eta: 0:04:05, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3125, top5_acc: 0.7177, loss_cls: 0.0724, loss: 0.0724, grad_norm: 0.3617
+2022-10-24 20:37:12,341 - pyskl - INFO - Epoch [19][600/744]	lr: 8.781e-05, eta: 0:04:00, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.3073, top5_acc: 0.7240, loss_cls: 0.0675, loss: 0.0675, grad_norm: 0.3562
+2022-10-24 20:37:17,380 - pyskl - INFO - Epoch [19][620/744]	lr: 8.392e-05, eta: 0:03:54, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3281, top5_acc: 0.7177, loss_cls: 0.0594, loss: 0.0594, grad_norm: 0.3242
+2022-10-24 20:37:22,419 - pyskl - INFO - Epoch [19][640/744]	lr: 8.011e-05, eta: 0:03:49, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3385, top5_acc: 0.7385, loss_cls: 0.0814, loss: 0.0814, grad_norm: 0.3394
+2022-10-24 20:37:27,401 - pyskl - INFO - Epoch [19][660/744]	lr: 7.639e-05, eta: 0:03:43, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7292, loss_cls: 0.0551, loss: 0.0551, grad_norm: 0.2780
+2022-10-24 20:37:32,357 - pyskl - INFO - Epoch [19][680/744]	lr: 7.276e-05, eta: 0:03:38, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7240, loss_cls: 0.0649, loss: 0.0649, grad_norm: 0.3319
+2022-10-24 20:37:37,424 - pyskl - INFO - Epoch [19][700/744]	lr: 6.921e-05, eta: 0:03:32, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3292, top5_acc: 0.7250, loss_cls: 0.0610, loss: 0.0610, grad_norm: 0.2936
+2022-10-24 20:37:42,424 - pyskl - INFO - Epoch [19][720/744]	lr: 6.576e-05, eta: 0:03:27, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.3208, top5_acc: 0.7302, loss_cls: 0.0604, loss: 0.0604, grad_norm: 0.2845
+2022-10-24 20:37:47,380 - pyskl - INFO - Epoch [19][740/744]	lr: 6.239e-05, eta: 0:03:22, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3333, top5_acc: 0.7271, loss_cls: 0.0633, loss: 0.0633, grad_norm: 0.2901
+2022-10-24 20:38:16,135 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:38:16,141 - pyskl - INFO - 
+top1_acc	0.5183
+top5_acc	0.8131
+2022-10-24 20:38:16,141 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:38:16,143 - pyskl - INFO - 
+mean_acc	0.5183
+2022-10-24 20:38:16,143 - pyskl - INFO - Epoch(val) [19][32]	top1_acc: 0.5183, top5_acc: 0.8131, mean_class_accuracy: 0.5183
+2022-10-24 20:38:37,064 - pyskl - INFO - Epoch [20][20/744]	lr: 5.846e-05, eta: 0:03:16, time: 1.046, data_time: 0.761, memory: 4591, top1_acc: 0.3073, top5_acc: 0.7063, loss_cls: 0.0710, loss: 0.0710, grad_norm: 0.3174
+2022-10-24 20:38:42,050 - pyskl - INFO - Epoch [20][40/744]	lr: 5.529e-05, eta: 0:03:10, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7302, loss_cls: 0.0602, loss: 0.0602, grad_norm: 0.2800
+2022-10-24 20:38:47,116 - pyskl - INFO - Epoch [20][60/744]	lr: 5.220e-05, eta: 0:03:05, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3365, top5_acc: 0.7333, loss_cls: 0.0635, loss: 0.0635, grad_norm: 0.2902
+2022-10-24 20:38:52,109 - pyskl - INFO - Epoch [20][80/744]	lr: 4.920e-05, eta: 0:02:59, time: 0.250, data_time: 0.002, memory: 4591, top1_acc: 0.3188, top5_acc: 0.7208, loss_cls: 0.0627, loss: 0.0627, grad_norm: 0.2913
+2022-10-24 20:38:57,181 - pyskl - INFO - Epoch [20][100/744]	lr: 4.629e-05, eta: 0:02:54, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7240, loss_cls: 0.0661, loss: 0.0661, grad_norm: 0.2774
+2022-10-24 20:39:02,212 - pyskl - INFO - Epoch [20][120/744]	lr: 4.347e-05, eta: 0:02:49, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3146, top5_acc: 0.7177, loss_cls: 0.0648, loss: 0.0648, grad_norm: 0.2950
+2022-10-24 20:39:07,238 - pyskl - INFO - Epoch [20][140/744]	lr: 4.073e-05, eta: 0:02:43, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3000, top5_acc: 0.7313, loss_cls: 0.0638, loss: 0.0638, grad_norm: 0.2859
+2022-10-24 20:39:12,282 - pyskl - INFO - Epoch [20][160/744]	lr: 3.809e-05, eta: 0:02:38, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3479, top5_acc: 0.7354, loss_cls: 0.0690, loss: 0.0690, grad_norm: 0.3028
+2022-10-24 20:39:17,315 - pyskl - INFO - Epoch [20][180/744]	lr: 3.553e-05, eta: 0:02:32, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3115, top5_acc: 0.7177, loss_cls: 0.0760, loss: 0.0760, grad_norm: 0.3217
+2022-10-24 20:39:22,238 - pyskl - INFO - Epoch [20][200/744]	lr: 3.306e-05, eta: 0:02:27, time: 0.247, data_time: 0.001, memory: 4591, top1_acc: 0.2927, top5_acc: 0.7073, loss_cls: 0.0640, loss: 0.0640, grad_norm: 0.3126
+2022-10-24 20:39:27,222 - pyskl - INFO - Epoch [20][220/744]	lr: 3.068e-05, eta: 0:02:21, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7271, loss_cls: 0.0603, loss: 0.0603, grad_norm: 0.2922
+2022-10-24 20:39:32,243 - pyskl - INFO - Epoch [20][240/744]	lr: 2.839e-05, eta: 0:02:16, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3500, top5_acc: 0.7313, loss_cls: 0.0664, loss: 0.0664, grad_norm: 0.2955
+2022-10-24 20:39:37,291 - pyskl - INFO - Epoch [20][260/744]	lr: 2.619e-05, eta: 0:02:11, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7323, loss_cls: 0.0756, loss: 0.0756, grad_norm: 0.3151
+2022-10-24 20:39:42,388 - pyskl - INFO - Epoch [20][280/744]	lr: 2.408e-05, eta: 0:02:05, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3260, top5_acc: 0.7281, loss_cls: 0.0673, loss: 0.0673, grad_norm: 0.2921
+2022-10-24 20:39:47,405 - pyskl - INFO - Epoch [20][300/744]	lr: 2.205e-05, eta: 0:02:00, time: 0.252, data_time: 0.002, memory: 4591, top1_acc: 0.3198, top5_acc: 0.7250, loss_cls: 0.0726, loss: 0.0726, grad_norm: 0.3153
+2022-10-24 20:39:52,453 - pyskl - INFO - Epoch [20][320/744]	lr: 2.012e-05, eta: 0:01:54, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3396, top5_acc: 0.7281, loss_cls: 0.0670, loss: 0.0670, grad_norm: 0.2970
+2022-10-24 20:39:57,477 - pyskl - INFO - Epoch [20][340/744]	lr: 1.827e-05, eta: 0:01:49, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3313, top5_acc: 0.7260, loss_cls: 0.0544, loss: 0.0544, grad_norm: 0.2868
+2022-10-24 20:40:02,486 - pyskl - INFO - Epoch [20][360/744]	lr: 1.651e-05, eta: 0:01:43, time: 0.251, data_time: 0.001, memory: 4591, top1_acc: 0.3010, top5_acc: 0.7177, loss_cls: 0.0530, loss: 0.0530, grad_norm: 0.2484
+2022-10-24 20:40:07,528 - pyskl - INFO - Epoch [20][380/744]	lr: 1.484e-05, eta: 0:01:38, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3302, top5_acc: 0.7281, loss_cls: 0.0532, loss: 0.0532, grad_norm: 0.2779
+2022-10-24 20:40:12,556 - pyskl - INFO - Epoch [20][400/744]	lr: 1.326e-05, eta: 0:01:33, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7052, loss_cls: 0.0575, loss: 0.0575, grad_norm: 0.2725
+2022-10-24 20:40:17,609 - pyskl - INFO - Epoch [20][420/744]	lr: 1.177e-05, eta: 0:01:27, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3083, top5_acc: 0.7313, loss_cls: 0.0739, loss: 0.0739, grad_norm: 0.3810
+2022-10-24 20:40:22,691 - pyskl - INFO - Epoch [20][440/744]	lr: 1.036e-05, eta: 0:01:22, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3156, top5_acc: 0.7292, loss_cls: 0.0620, loss: 0.0620, grad_norm: 0.2825
+2022-10-24 20:40:27,758 - pyskl - INFO - Epoch [20][460/744]	lr: 9.049e-06, eta: 0:01:16, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3375, top5_acc: 0.7240, loss_cls: 0.0652, loss: 0.0652, grad_norm: 0.2901
+2022-10-24 20:40:32,837 - pyskl - INFO - Epoch [20][480/744]	lr: 7.824e-06, eta: 0:01:11, time: 0.254, data_time: 0.001, memory: 4591, top1_acc: 0.3229, top5_acc: 0.7219, loss_cls: 0.0627, loss: 0.0627, grad_norm: 0.3041
+2022-10-24 20:40:37,890 - pyskl - INFO - Epoch [20][500/744]	lr: 6.688e-06, eta: 0:01:06, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3135, top5_acc: 0.7302, loss_cls: 0.0591, loss: 0.0591, grad_norm: 0.2753
+2022-10-24 20:40:42,941 - pyskl - INFO - Epoch [20][520/744]	lr: 5.640e-06, eta: 0:01:00, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3000, top5_acc: 0.7135, loss_cls: 0.0626, loss: 0.0626, grad_norm: 0.2924
+2022-10-24 20:40:47,992 - pyskl - INFO - Epoch [20][540/744]	lr: 4.682e-06, eta: 0:00:55, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3292, top5_acc: 0.7156, loss_cls: 0.0635, loss: 0.0635, grad_norm: 0.3075
+2022-10-24 20:40:53,072 - pyskl - INFO - Epoch [20][560/744]	lr: 3.813e-06, eta: 0:00:49, time: 0.253, data_time: 0.001, memory: 4591, top1_acc: 0.3167, top5_acc: 0.7385, loss_cls: 0.0717, loss: 0.0717, grad_norm: 0.3253
+2022-10-24 20:40:58,024 - pyskl - INFO - Epoch [20][580/744]	lr: 3.034e-06, eta: 0:00:44, time: 0.248, data_time: 0.001, memory: 4591, top1_acc: 0.3281, top5_acc: 0.7198, loss_cls: 0.0709, loss: 0.0709, grad_norm: 0.3005
+2022-10-24 20:41:03,040 - pyskl - INFO - Epoch [20][600/744]	lr: 2.343e-06, eta: 0:00:38, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3292, top5_acc: 0.7406, loss_cls: 0.0891, loss: 0.0891, grad_norm: 0.3530
+2022-10-24 20:41:08,002 - pyskl - INFO - Epoch [20][620/744]	lr: 1.741e-06, eta: 0:00:33, time: 0.249, data_time: 0.002, memory: 4591, top1_acc: 0.3302, top5_acc: 0.7344, loss_cls: 0.0679, loss: 0.0679, grad_norm: 0.2966
+2022-10-24 20:41:12,999 - pyskl - INFO - Epoch [20][640/744]	lr: 1.229e-06, eta: 0:00:28, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.2990, top5_acc: 0.7208, loss_cls: 0.0845, loss: 0.0845, grad_norm: 0.3305
+2022-10-24 20:41:18,056 - pyskl - INFO - Epoch [20][660/744]	lr: 8.051e-07, eta: 0:00:22, time: 0.253, data_time: 0.002, memory: 4591, top1_acc: 0.3188, top5_acc: 0.7281, loss_cls: 0.0601, loss: 0.0601, grad_norm: 0.3058
+2022-10-24 20:41:23,060 - pyskl - INFO - Epoch [20][680/744]	lr: 4.708e-07, eta: 0:00:17, time: 0.251, data_time: 0.002, memory: 4591, top1_acc: 0.3021, top5_acc: 0.7167, loss_cls: 0.0552, loss: 0.0552, grad_norm: 0.2607
+2022-10-24 20:41:28,122 - pyskl - INFO - Epoch [20][700/744]	lr: 2.257e-07, eta: 0:00:11, time: 0.252, data_time: 0.001, memory: 4591, top1_acc: 0.3250, top5_acc: 0.7094, loss_cls: 0.0575, loss: 0.0575, grad_norm: 0.2797
+2022-10-24 20:41:33,075 - pyskl - INFO - Epoch [20][720/744]	lr: 6.965e-08, eta: 0:00:06, time: 0.248, data_time: 0.002, memory: 4591, top1_acc: 0.3104, top5_acc: 0.7281, loss_cls: 0.0610, loss: 0.0610, grad_norm: 0.3038
+2022-10-24 20:41:38,064 - pyskl - INFO - Epoch [20][740/744]	lr: 2.786e-09, eta: 0:00:01, time: 0.249, data_time: 0.001, memory: 4591, top1_acc: 0.3469, top5_acc: 0.7354, loss_cls: 0.0750, loss: 0.0750, grad_norm: 0.3231
+2022-10-24 20:41:39,823 - pyskl - INFO - Saving checkpoint at 20 epochs
+2022-10-24 20:42:07,835 - pyskl - INFO - Evaluating top_k_accuracy ...
+2022-10-24 20:42:07,841 - pyskl - INFO - 
+top1_acc	0.5176
+top5_acc	0.8118
+2022-10-24 20:42:07,841 - pyskl - INFO - Evaluating mean_class_accuracy ...
+2022-10-24 20:42:07,842 - pyskl - INFO - 
+mean_acc	0.5176
+2022-10-24 20:42:07,842 - pyskl - INFO - Epoch(val) [20][32]	top1_acc: 0.5176, top5_acc: 0.8118, mean_class_accuracy: 0.5176
